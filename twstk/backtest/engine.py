@@ -20,6 +20,7 @@ from strategies.base import (
 from twstk.data import (
     fetch_prices, liquid_universe, fetch_benchmark,
     fetch_us_signals, align_us_to_tw, build_inst_flow_df, fetch_sbl_balances,
+    fetch_global_context, fetch_chip_indicators,
 )
 from twstk.portfolio import (
     PortfolioConfig, simulate_weights, equity_dataframe, trades_dataframe,
@@ -58,6 +59,7 @@ class RunConfig:
     rebalance_threshold: float = 0.0       # WeightStrategy 用
     benchmark_ticker: str = "0050"
     use_inst_flow: bool = False            # ★載入新版三大法人因子
+    refresh_latest: bool = False           # 即時 paper 才更新融資融券／借券快取
 
 
 @dataclass
@@ -104,6 +106,16 @@ def build_market_data(cfg: RunConfig, strategy: Strategy) -> MarketData:
         except Exception as e:  # noqa: BLE001
             print(f"   ⚠️ 美股訊號抓取失敗: {e}")
 
+    global_context = None
+    if "global_context" in requires:
+        try:
+            global_context = fetch_global_context(
+                list(panel.close.columns), panel.close.index,
+                start_date=panel.close.index[0], end_date=panel.close.index[-1],
+            )
+        except Exception as e:  # noqa: BLE001
+            print(f"   ⚠️ 隔夜美股／全球龍頭資料抓取失敗，採中性降級: {e}")
+
     inst_flow_df = inst_ratio_df = None
     if cfg.use_inst_flow or "inst_flow" in requires:
         try:
@@ -114,7 +126,20 @@ def build_market_data(cfg: RunConfig, strategy: Strategy) -> MarketData:
             print(f"   ⚠️ 三大法人資料抓取失敗，跳過: {e}")
 
     short_sale_df = None
-    if "short_sale" in requires:
+    margin_balance_df = margin_short_df = None
+    if "chip_indicators" in requires:
+        try:
+            chips = fetch_chip_indicators(
+                list(panel.close.columns), panel.close.index,
+                start_date=panel.close.index[0], end_date=panel.close.index[-1],
+                refresh_latest=cfg.refresh_latest,
+            )
+            margin_balance_df = chips.margin_balance
+            margin_short_df = chips.margin_short_balance
+            short_sale_df = chips.sbl_balance
+        except Exception as e:  # noqa: BLE001
+            print(f"   ⚠️ 融資／融券／借券資料載入失敗，採中性降級: {e}")
+    elif "short_sale" in requires:
         try:
             sd = panel.close.index[0].strftime("%Y-%m-%d")
             ed = panel.close.index[-1].strftime("%Y-%m-%d")
@@ -127,9 +152,10 @@ def build_market_data(cfg: RunConfig, strategy: Strategy) -> MarketData:
         close=panel.close, open=panel.open, high=panel.high,
         low=panel.low, volume=panel.volume,
         market_close=market_close, universe_mask=universe_mask,
-        us_signals=us_signals,
+        us_signals=us_signals, global_context=global_context,
         inst_flow_df=inst_flow_df, inst_ratio_df=inst_ratio_df,
         short_sale_df=short_sale_df,
+        margin_balance_df=margin_balance_df, margin_short_df=margin_short_df,
     )
 
 
@@ -138,11 +164,16 @@ def run_backtest(strategy: Strategy, cfg: RunConfig) -> BacktestResult:
     print(f"🚀 回測策略：{strategy.name} — {getattr(strategy, 'description', '')}")
     data = build_market_data(cfg, strategy)
 
+    capital_cap = getattr(strategy, "capital_cap", None)
+    effective_capital = min(cfg.initial_capital, capital_cap) if capital_cap else cfg.initial_capital
+    if capital_cap and cfg.initial_capital > capital_cap:
+        print(f"   💰 此版本投資上限 {capital_cap:,.0f}，回測資金由 {cfg.initial_capital:,.0f} 限為 {effective_capital:,.0f}")
+
     weights = None
     if isinstance(strategy, EngineStrategy):
         # 自帶引擎（忠實 v8.5 / SR v2 / v9）
         exec_cfg = ExecConfig(
-            initial_capital=cfg.initial_capital,
+            initial_capital=effective_capital,
             buy_cost=cfg.buy_cost, sell_cost=cfg.sell_cost, slippage=cfg.slippage,
             top_k=cfg.top_k, threshold=cfg.threshold,
         )
@@ -151,7 +182,7 @@ def run_backtest(strategy: Strategy, cfg: RunConfig) -> BacktestResult:
         # 共用權重成交核心
         weights = strategy.target_weights(data)
         pcfg = PortfolioConfig(
-            initial_capital=cfg.initial_capital,
+            initial_capital=effective_capital,
             buy_cost=cfg.buy_cost, sell_cost=cfg.sell_cost, slippage=cfg.slippage,
             max_weight=cfg.max_weight, rebalance_threshold=cfg.rebalance_threshold,
         )
@@ -167,7 +198,7 @@ def run_backtest(strategy: Strategy, cfg: RunConfig) -> BacktestResult:
     eval_equity = equity_df
     if cfg.eval_start and not equity_df.empty:
         eval_equity = equity_df[equity_df.index >= pd.Timestamp(cfg.eval_start)]
-    metrics = compute_risk_metrics(eval_equity, trades_df, cfg.initial_capital)
+    metrics = compute_risk_metrics(eval_equity, trades_df, effective_capital)
 
     benchmark_equity = None
     try:

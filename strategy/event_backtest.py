@@ -167,7 +167,12 @@ class EventDrivenBacktester:
                  tiered_core_decay=0.35,
                  tiered_sat_decay=0.85,
                  tiered_core_floor=0.55,
-                 tiered_sat_floor=0.15):
+                 tiered_sat_floor=0.15,
+                 # Optional execution controls used by small-account variants.
+                 cash_reserve_pct=0.0,
+                 max_position_pct=1.0,
+                 integer_shares=False,
+                 min_trade_amount=0.0):
         self.tp_pct = tp_pct
         self.sl_pct = sl_pct
         self.max_hold_days = max_hold_days
@@ -245,6 +250,10 @@ class EventDrivenBacktester:
         self.tilt_windows = tilt_windows if tilt_windows else [10, 15, 20]
         self.buy_cost = buy_cost
         self.sell_cost = sell_cost
+        self.cash_reserve_pct = min(max(float(cash_reserve_pct), 0.0), 0.95)
+        self.max_position_pct = min(max(float(max_position_pct), 0.0), 1.0)
+        self.integer_shares = bool(integer_shares)
+        self.min_trade_amount = max(float(min_trade_amount), 0.0)
         # v9
         self.hybrid_tiered = hybrid_tiered
         self.core_tickers = set(core_tickers or ['2330', '2454', '2308', '2317'])
@@ -439,7 +448,8 @@ class EventDrivenBacktester:
     def run(self, total_score, close_df, open_df, high_df, low_df, ma_60,
             top_k=3, threshold=2.0, atr_df=None,
             market_close=None, vol_df=None, universe_mask=None,
-            inst_flow_by_window=None, vix_series=None):
+            inst_flow_by_window=None, vix_series=None,
+            entry_gate_df=None, entry_scale_df=None):
         """
         執行事件驅動回測。
 
@@ -467,7 +477,11 @@ class EventDrivenBacktester:
             大盤指數收盤價（0050），用於 regime filter
         vol_df : pd.DataFrame, optional
             成交量矩陣，用於 volume confirmation
-
+        entry_gate_df : pd.DataFrame, optional
+            台股開盤時已知的逐檔進場許可；使用當日列，讓昨晚完整美股
+            session 可與昨日台股收盤訊號共同決定今日開盤是否成交。
+        entry_scale_df : pd.DataFrame, optional
+            與 entry_gate_df 同時間語意的逐檔部位倍率。
         Returns
         -------
         trades_df : pd.DataFrame
@@ -1111,6 +1125,16 @@ class EventDrivenBacktester:
                         if not (score >= threshold and prev_close > ma):
                             continue
 
+                        # 此 gate 的第 i 列代表「今日開盤已知」資訊：台股個股／籌碼
+                        # 都先 lag 一日，隔夜美股則取嚴格前一個完整 session。
+                        if entry_gate_df is not None and ticker in entry_gate_df.columns:
+                            try:
+                                gate = entry_gate_df[ticker].iloc[i]
+                                if pd.isna(gate) or not bool(gate):
+                                    continue
+                            except Exception:
+                                continue
+
                         if self.gap_filter_atr > 0 and atr is not None:
                             atr_val = atr[ticker].iloc[i - 1] if i - 1 >= 0 else np.nan
                             if not pd.isna(atr_val) and atr_val > 0:
@@ -1421,7 +1445,18 @@ class EventDrivenBacktester:
                             and (self._daily_rotation or {}).get('sat_entry_freeze', 0) >= 1.0):
                         continue
 
-                    effective_pos_size = self.position_size * rank_weight * regime_scale * gap_scale * batch_scale
+                    timing_scale = 1.0
+                    if entry_scale_df is not None and ticker in entry_scale_df.columns:
+                        try:
+                            candidate_scale = float(entry_scale_df[ticker].iloc[i])
+                            if np.isfinite(candidate_scale):
+                                timing_scale = min(max(candidate_scale, 0.0), 1.25)
+                        except Exception:
+                            pass
+                    effective_pos_size = (
+                        self.position_size * rank_weight * regime_scale
+                        * gap_scale * batch_scale * timing_scale
+                    )
 
                     # === v9 hybrid：平常滿倉，不因 VIX 縮 Satellite ===
                     vix_trade_mult = 1.0
@@ -1457,6 +1492,7 @@ class EventDrivenBacktester:
                         })
 
                     effective_pos_size = effective_pos_size * vix_trade_mult * rotation_boost
+                    effective_pos_size = min(effective_pos_size, self.max_position_pct)
 
                     if self.dynamic_risk and market_daily_ret is not None:
                         try:
@@ -1483,6 +1519,24 @@ class EventDrivenBacktester:
                             trade_amount = current_equity * effective_pos_size
                     else:
                         trade_amount = current_equity * effective_pos_size
+
+                    # Preserve a deliberate cash buffer for small accounts and cap gross
+                    # exposure using current marks.  Defaults are no-op for legacy versions.
+                    if self.cash_reserve_pct > 0:
+                        invested = 0.0
+                        for held_ticker, held_trade in active_trades.items():
+                            mark = close_df[held_ticker].iloc[i]
+                            if pd.isna(mark):
+                                mark = held_trade['entry_price']
+                            invested += held_trade['shares'] * mark
+                        gross_cap = current_equity * (1.0 - self.cash_reserve_pct)
+                        trade_amount = min(trade_amount, max(0.0, gross_cap - invested))
+
+                    if self.integer_shares and actual_entry > 0:
+                        shares_int = np.floor(trade_amount / actual_entry)
+                        trade_amount = shares_int * actual_entry
+                    if trade_amount < self.min_trade_amount:
+                        continue
 
                     actual_cost = trade_amount * (1 + self.buy_cost)  # 含買入手續費
 
@@ -1563,4 +1617,10 @@ class EventDrivenBacktester:
         else:
             print("   ⚠️  回測完成但無任何交易觸發")
 
+        # Expose a read-only-style snapshot for paper/report builders.  Legacy
+        # callers ignore these attributes, so historical strategy semantics do
+        # not change.
+        self.last_positions = {ticker: dict(trade) for ticker, trade in active_trades.items()}
+        self.last_cash = float(capital)
+        self.last_date = dates[-1] if len(dates) else None
         return trades_df, equity_df

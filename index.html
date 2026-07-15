@@ -22,6 +22,8 @@
         .guard { background: #052e2b; color: #5eead4; }
         .base  { background: #1e1b4b; color: #a5b4fc; }
         .paper { background: #3f1d38; color: #f0abfc; }
+        .paper300 { background: #172554; color: #93c5fd; }
+        .research { background: #3f3f0b; color: #fde047; }
         .name { font-size: 1.15rem; font-weight: 700; margin: 0 0 6px; }
         .desc { color: #cbd5e1; font-size: .9rem; margin: 0 0 10px; }
         .stat { color: #94a3b8; font-size: .82rem; font-variant-numeric: tabular-nums; }
@@ -39,7 +41,7 @@
 <body>
   <div class="wrap">
     <h1>AI 台股量化交易</h1>
-    <p class="sub">四個正式策略：v8.5 基準 + 約束優化後的 GUARD / SURGE / SURGE PRO。每日收盤後自動更新。</p>
+    <p class="sub">四個正式策略 + 五個單因子隔離研究／30萬執行版本。原版不覆蓋，每日收盤後自動更新。</p>
     <div class="grid">
       <a class="card" href="report_surge_pro.html">
         <span class="tag surgepro">SURGE PRO · 追最高報酬</span>
@@ -77,6 +79,36 @@
         <p class="desc">模擬交易追蹤 —— 追蹤 <b style="color:#5eead4">GUARD</b>（最穩健·相關性分散）的當日買賣訊號、近兩個月績效。標的可點擊跳 Yahoo Finance。</p>
         <p class="stat">每日更新</p>
       </a>
+      <a class="card" href="paper_trading_v85_300k.html">
+        <span class="tag paper300">Paper · v8.5 · 30萬</span>
+        <p class="name">momentum_v85_300k</p>
+        <p class="desc">30 萬上限的獨立 v8.5：整股零股、最低 2% 現金、單檔 15%、相關聚落最多 2 檔。</p>
+        <p class="stat">凍結驗證 年化 <b>39.5%</b> · MDD <b>-24.2%</b></p>
+      </a>
+      <a class="card" href="paper_trading_surge_pro_300k.html">
+        <span class="tag paper300">Paper · SURGE PRO · 30萬</span>
+        <p class="name">mom_surge_pro_300k</p>
+        <p class="desc">30 萬上限的獨立 SURGE PRO：整股零股、最低 2% 現金、單檔 20%，保留強勢聚落 alpha。</p>
+        <p class="stat">凍結驗證 年化 <b>60.5%</b> · MDD <b>-23.6%</b></p>
+      </a>
+      <a class="card" href="capital_rotation_alert.html">
+        <span class="tag paper300">Alert · SURGE PRO · 輪動</span>
+        <p class="name">mom_surge_pro_rotation_alert</p>
+        <p class="desc">連續三日同一來源→目的領域才成立；顯示相對強弱、成交額、廣度、法人流與相關性。只警示，不自動減碼。</p>
+        <p class="stat">每日收盤後更新 · 不宣稱回撤預測</p>
+      </a>
+    </div>
+    <div class="guide">
+      <h2>🧪 五個新版本（單因子隔離，不混版）</h2>
+      <p class="gsub">PASS 才可作候選；研究版保留程式與結果，但不建議取代母策略。</p>
+      <table>
+        <tr><th>母策略／件別</th><th>註冊名</th><th>凍結結果與判定</th></tr>
+        <tr><td>v8.5 · 第一件事</td><td><code>momentum_v85_confirmed</code></td><td><b style="color:#4ade80">PASS</b>：年化 42.5%、MDD −20.9%、822 筆</td></tr>
+        <tr><td>v8.5 · 第二件事</td><td><code>momentum_v85_300k</code></td><td><b style="color:#4ade80">PASS</b>：年化 39.5%、MDD −24.2%</td></tr>
+        <tr><td>SURGE PRO · 第一件事</td><td><code>mom_surge_pro_confirmed</code></td><td><b style="color:#fde047">研究版</b>：50.1%／−23.6%，未勝原版</td></tr>
+        <tr><td>SURGE PRO · 第二件事</td><td><code>mom_surge_pro_300k</code></td><td><b style="color:#4ade80">30萬執行版</b>：60.5%／−23.6%</td></tr>
+        <tr><td>SURGE PRO · 第三件事</td><td><code>mom_surge_pro_rotation_alert</code></td><td><b style="color:#fde047">警示專用</b>：三日確認，不自動減碼，交易與母策略相同</td></tr>
+      </table>
     </div>
     <div class="guide">
       <h2>📌 選哪個策略？（依市場情境）</h2>

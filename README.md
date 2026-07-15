@@ -25,6 +25,22 @@
 > 報表數字為**全期 2019-01-01 → 回測當日**（`--eval-start 2019-01-01`），與下表一致；
 > 點時間值，會隨資料更新而漂移，非恆定保證。
 
+## 五個隔離新版本（2026-07-16）
+
+依三項需求拆成五版，避免把進場濾網、30 萬配置與輪動警示混在一起造成歸因錯誤；原四個正式策略完全不變。
+
+| 母策略 | 件別 | 註冊名 | 2019–2026 同資料結果 | 判定 |
+|---|---|---|---|---|
+| v8.5 | 隔夜／龍頭／籌碼確認 | `momentum_v85_confirmed` | 年化 42.5%、Sharpe 1.73、MDD -20.9%、822 筆 | **PASS** |
+| v8.5 | 30 萬配置 | `momentum_v85_300k` | 年化 39.5%、MDD -24.2% | **PASS** |
+| SURGE PRO | 隔夜／龍頭／籌碼確認 | `mom_surge_pro_confirmed` | 年化 50.1%、MDD -23.6% | 研究版，未勝母策略 |
+| SURGE PRO | 30 萬配置 | `mom_surge_pro_300k` | 年化 60.5%、MDD -23.6% | **30萬執行版** |
+| SURGE PRO | 資金輪動警示 | `mom_surge_pro_rotation_alert` | 交易績效與母策略相同 | **警示專用，不自動交易** |
+
+第一件事資料嚴格以台股開盤前的完整美股交易日為準，例如 7/16 台股開盤只使用 7/15 的 S&P 500、SOX、TSM ADR 開盤／日內區間／收盤；個股另映射全球龍頭。融資、融券、借券保留原始數量後，以前一日變化做橫斷面標準化，避免前視與規模偏誤。
+
+第二件事的 paper 頁：[`paper_trading_v85_300k.html`](paper_trading_v85_300k.html) 與 [`paper_trading_surge_pro_300k.html`](paper_trading_surge_pro_300k.html)。第三件事的每日監控頁是 [`capital_rotation_alert.html`](capital_rotation_alert.html)，逐筆十年結果在 `artifacts/capital_rotation_*_10y.csv/json`；3 日確認共有 192 次事件，回撤中位領先 20 個交易日，但 20% 回撤命中率未優於配對基準。此版本只在收盤後產生下一交易日可見警報，不改變持倉；警報後的回撤統計只用來決定監控頻率，不得解讀為預測機率或賣出期限。
+
 ---
 
 ## 四策略（全期 2019-2026，動態 Top-60，引擎內部 ATR，`consec_loss_limit=3`）

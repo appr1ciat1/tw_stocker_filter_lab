@@ -62,3 +62,7 @@ def _ensure_loaded():
     from strategies import momentum_v9_sbl     # noqa: F401  v9 + 借券(SBL) tilt
     from strategies import reversal            # noqa: F401  均值回歸 sleeve
     from strategies import ew_momentum         # noqa: F401  範例（目標權重型）
+    # 五個隔離研究版：v8.5(第一/二件事)、SURGE PRO(第一/二/三件事)
+    from strategies import entry_confirmation  # noqa: F401
+    from strategies import capital_300k        # noqa: F401
+    from strategies import rotation_exit       # noqa: F401

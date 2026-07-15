@@ -164,6 +164,14 @@ jobs:
         if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
         run: python build_paper_page.py
 
+      - name: Paper pages (v8.5 / SURGE PRO · 30萬獨立版)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: python build_paper_300k.py --start 2019-01-01
+
+      - name: SURGE PRO capital-rotation alert (warning only)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: python build_rotation_alert.py --start 2024-01-01
+
       - name: Monthly Paper Trading Report
         if: github.event.schedule == '0 10 1 * *'
         run: python paper_trade.py monthly
@@ -180,6 +188,8 @@ jobs:
           git config --global user.name "Voidful"
 
           git add stock_report.html backtest_chart.png paper_trading.html paper_trading_guard.html paper_equity.json || true
+          git add paper_trading_v85_300k.html paper_trading_surge_pro_300k.html || true
+          git add capital_rotation_alert.html capital_rotation_alert_latest.json || true
           git add report_v85.html chart_v85.png report_guard.html chart_guard.png index.html || true
           git add report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png || true
           git add -u artifacts || true

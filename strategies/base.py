@@ -38,9 +38,12 @@ class MarketData:
     market_close: Optional[pd.Series] = None        # 大盤(0050)，供 regime
     universe_mask: Optional[pd.DataFrame] = None     # 流動性池遮罩
     us_signals: Optional[pd.DataFrame] = None        # 美股 regime（已對齊台股交易日）
+    global_context: Optional[object] = None           # 隔夜 SPX/SOX/TSM ADR + 個股全球龍頭
     inst_flow_df: Optional[pd.DataFrame] = None      # ★三大法人變化（新版）
     inst_ratio_df: Optional[pd.DataFrame] = None     # ★三大法人比重（新版）
     short_sale_df: Optional[pd.DataFrame] = None     # ★借券賣出餘額（SBL,法人空方）
+    margin_balance_df: Optional[pd.DataFrame] = None # ★融資餘額數量
+    margin_short_df: Optional[pd.DataFrame] = None   # ★融券餘額數量
 
 
 @dataclass
@@ -70,7 +73,7 @@ class Strategy(ABC):
 
     name: str = "base"
     description: str = ""
-    #: 宣告需要哪些選用資料（讓資料層只抓必要的）。可含 'us_signals' / 'inst_flow'。
+    #: 可含 us_signals/global_context/inst_flow/chip_indicators/short_sale。
     requires: set = frozenset()
 
     def __init__(self, **params):

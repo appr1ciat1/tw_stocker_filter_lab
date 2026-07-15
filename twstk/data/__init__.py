@@ -32,6 +32,13 @@ _EXPORTS = {
     # us market
     "fetch_us_signals": "twstk.data.us_market",
     "align_us_to_tw": "twstk.data.us_market",
+    # 台股開盤可得的隔夜美股 / 全球龍頭（嚴格使用前一完整美股交易日）
+    "GlobalContext": "twstk.data.global_context",
+    "fetch_global_context": "twstk.data.global_context",
+    "align_completed_us_session": "twstk.data.global_context",
+    # 融資、融券、借券數量
+    "ChipIndicators": "twstk.data.chip_indicators",
+    "fetch_chip_indicators": "twstk.data.chip_indicators",
     # 借券賣出(SBL,法人空方)
     "fetch_sbl_balances": "twstk.data.short_sale",
     # institutional（新版）

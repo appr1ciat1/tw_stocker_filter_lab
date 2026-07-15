@@ -84,6 +84,14 @@ def _build_engine(p: dict, exec_cfg: ExecConfig) -> EventDrivenBacktester:
         corr_select_max=p.get('corr_select_max', 0.0),
         corr_select_window=p.get('corr_select_window', 60),
         corr_select_cap=p.get('corr_select_cap', 1),
+        max_portfolio_heat=p.get('max_portfolio_heat', 1.0),
+        rank_weighted=p.get('rank_weighted', False),
+        gap_aware_sizing=p.get('gap_aware_sizing', False),
+        sector_max_pct=p.get('sector_max_pct', 0.75),
+        cash_reserve_pct=p.get('cash_reserve_pct', 0.0),
+        max_position_pct=p.get('max_position_pct', 1.0),
+        integer_shares=p.get('integer_shares', False),
+        min_trade_amount=p.get('min_trade_amount', 0.0),
     )
 
 

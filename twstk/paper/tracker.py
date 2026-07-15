@@ -29,6 +29,7 @@ from strategies.base import MarketData, ExecConfig, EngineStrategy, WeightStrate
 from twstk.data import (
     fetch_prices, liquid_universe, fetch_benchmark,
     fetch_us_signals, align_us_to_tw, build_inst_flow_df, fetch_sbl_balances,
+    fetch_global_context, fetch_chip_indicators,
 )
 from twstk.portfolio import (
     PortfolioConfig, simulate_weights, new_state,
@@ -90,6 +91,16 @@ def _build_market_data(cfg, strategy, fetch_start, end_date):
             us_signals = align_us_to_tw(raw, panel.close.index)
         except Exception as e:  # noqa: BLE001
             print(f"   ⚠️ 美股訊號抓取失敗: {e}")
+    global_context = None
+    if "global_context" in requires:
+        try:
+            global_context = fetch_global_context(
+                list(panel.close.columns), panel.close.index,
+                start_date=panel.close.index[0], end_date=panel.close.index[-1],
+                verbose=False,
+            )
+        except Exception as e:  # noqa: BLE001
+            print(f"   ⚠️ 隔夜美股／全球龍頭資料失敗，採中性降級: {e}")
     inst_flow_df = inst_ratio_df = None
     if "inst_flow" in requires:
         try:
@@ -99,7 +110,20 @@ def _build_market_data(cfg, strategy, fetch_start, end_date):
             pass
 
     short_sale_df = None
-    if "short_sale" in requires:
+    margin_balance_df = margin_short_df = None
+    if "chip_indicators" in requires:
+        try:
+            chips = fetch_chip_indicators(
+                list(panel.close.columns), panel.close.index,
+                start_date=panel.close.index[0], end_date=panel.close.index[-1],
+                refresh_latest=True, verbose=False,
+            )
+            margin_balance_df = chips.margin_balance
+            margin_short_df = chips.margin_short_balance
+            short_sale_df = chips.sbl_balance
+        except Exception as e:  # noqa: BLE001
+            print(f"   ⚠️ 融資／融券／借券資料失敗，採中性降級: {e}")
+    elif "short_sale" in requires:
         try:
             sd = panel.close.index[0].strftime("%Y-%m-%d")
             ed = panel.close.index[-1].strftime("%Y-%m-%d")
@@ -113,21 +137,25 @@ def _build_market_data(cfg, strategy, fetch_start, end_date):
         close=panel.close, open=panel.open, high=panel.high,
         low=panel.low, volume=panel.volume,
         market_close=market_close, universe_mask=universe_mask,
-        us_signals=us_signals, inst_flow_df=inst_flow_df, inst_ratio_df=inst_ratio_df,
-        short_sale_df=short_sale_df,
+        us_signals=us_signals, global_context=global_context,
+        inst_flow_df=inst_flow_df, inst_ratio_df=inst_ratio_df,
+        short_sale_df=short_sale_df, margin_balance_df=margin_balance_df,
+        margin_short_df=margin_short_df,
     )
 
 
 def run(strategy_name, start_date, end_date, cfg: SimConfig, state=None, **strat_params):
     """從 start_date 模擬到 end_date，回傳更新後的 state。"""
     strategy = get_strategy(strategy_name, **strat_params)
+    capital_cap = getattr(strategy, "capital_cap", None)
+    effective_capital = min(cfg.capital, capital_cap) if capital_cap else cfg.capital
     fetch_start = (pd.Timestamp(start_date) - pd.Timedelta(days=220)).strftime("%Y-%m-%d")
     data = _build_market_data(cfg, strategy, fetch_start, end_date)
 
     if isinstance(strategy, EngineStrategy):
         # 事件引擎：完整重跑（replay 語意），重建 equity/trades
         exec_cfg = ExecConfig(
-            initial_capital=cfg.capital,
+            initial_capital=effective_capital,
             buy_cost=cfg.buy_cost, sell_cost=cfg.sell_cost, slippage=cfg.slippage,
             top_k=int(strat_params.get("top_k", 7)),
             threshold=float(strat_params.get("threshold", 2.0)),
@@ -135,7 +163,7 @@ def run(strategy_name, start_date, end_date, cfg: SimConfig, state=None, **strat
         trades_df, equity_df = strategy.run_engine(data, exec_cfg)
         lo, hi = pd.Timestamp(start_date), pd.Timestamp(end_date)
         eq = equity_df[(equity_df.index >= lo) & (equity_df.index <= hi)]
-        state = new_state(start_date, cfg.capital)
+        state = new_state(start_date, effective_capital)
         state["strategy"] = strategy_name
         state["equity_curve"] = [
             {"date": str(d.date()), "equity": round(float(v), 2)}
@@ -150,12 +178,12 @@ def run(strategy_name, start_date, end_date, cfg: SimConfig, state=None, **strat
     if isinstance(strategy, WeightStrategy):
         weights = strategy.target_weights(data)
         pcfg = PortfolioConfig(
-            initial_capital=cfg.capital,
+            initial_capital=effective_capital,
             buy_cost=cfg.buy_cost, sell_cost=cfg.sell_cost, slippage=cfg.slippage,
             max_weight=cfg.max_weight,
         )
         if state is None:
-            state = new_state(start_date, cfg.capital)
+            state = new_state(start_date, effective_capital)
             state["strategy"] = strategy_name
         state = simulate_weights(
             weights, data.open, data.close, pcfg,

@@ -53,6 +53,8 @@ def main(argv=None):
     parser.add_argument("--rebalance-threshold", type=float, default=0.0,
                         help="權重變動小於此值不換倉（降週轉）")
     parser.add_argument("--inst-flow", action="store_true", help="載入新版三大法人因子")
+    parser.add_argument("--refresh-latest", action="store_true",
+                        help="更新最新融資／融券／借券快取（每日 paper 建議啟用）")
     # ── 策略專屬參數（會傳給策略）──
     parser.add_argument("--top-k", type=int, help="每日最多持有檔數")
     parser.add_argument("--threshold", type=float, help="評分型：進場分數下限")
@@ -87,6 +89,7 @@ def main(argv=None):
         max_weight=args.max_weight,
         rebalance_threshold=args.rebalance_threshold,
         use_inst_flow=args.inst_flow,
+        refresh_latest=args.refresh_latest,
     )
 
     strategy = get_strategy(args.strategy, **strat_params)
