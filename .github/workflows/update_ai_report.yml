@@ -1,0 +1,273 @@
+name: AI Quant Trading Report v9
+
+on:
+  schedule:
+    # 每週一到六 UTC 09:17（台灣時間 17:17 收盤後）。含週六以涵蓋台股「補班補課」交易日；
+    # 實際是否為交易日由下方 "Check Taiwan trading day" 步驟用 XTAI 行事曆判定，非交易日自動跳過。
+    - cron: '17 9 * * 1-6'
+    # 每月 1 日 UTC 10:00 跑月報
+    - cron: '0 10 1 * *'
+  workflow_dispatch:
+    inputs:
+      tp_atr:
+        description: 'ATR 停利倍數'
+        required: false
+        default: '4.0'
+      sl_atr:
+        description: 'ATR 停損倍數'
+        required: false
+        default: '3.0'
+      hold_days:
+        description: '最大持倉天數'
+        required: false
+        default: '20'
+      top_k:
+        description: '每日最多進場股票數'
+        required: false
+        default: '7'
+      days:
+        description: '回測天數'
+        required: false
+        default: '1200'
+      gap_filter:
+        description: '跳空過濾 ATR 倍數'
+        required: false
+        default: '1.5'
+
+# 防止多個 run 同時 push 造成 race condition
+concurrency:
+  group: ai-report-main
+  cancel-in-progress: false
+
+# 讓 workflow 的 GITHUB_TOKEN 能 commit/push 回 repo（repo 預設唯讀時必要）
+permissions:
+  contents: write
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # This repo contains large tracked market data. A full-history fetch can
+          # exhaust the hosted runner before the job even starts.
+          fetch-depth: 1
+          fetch-tags: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 用 XTAI（台股）行事曆判定「今天台灣時間是否為交易日」。
+      # 排程在非交易日（含週末、國定假日）會自動跳過；手動 workflow_dispatch 一律執行。
+      - name: Check Taiwan trading day
+        id: twcheck
+        run: |
+          python - <<'PY'
+          import os, datetime
+          is_trading = True
+          if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+              try:
+                  import exchange_calendars as xcals, pandas as pd
+                  tw = (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).date()
+                  is_trading = bool(xcals.get_calendar("XTAI").is_session(pd.Timestamp(tw)))
+                  print("台灣日期", tw, "交易日?", is_trading)
+              except Exception as e:
+                  print("行事曆判定失敗，預設執行:", e); is_trading = True
+          else:
+              print("手動觸發 → 一律執行")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"is_trading={'true' if is_trading else 'false'}\n")
+          PY
+
+      # ── 四個策略各自產報表；每份用 sed 把標題改成各自策略名（避免全顯示 v8.5 混淆）──
+      # 執行順序：v8.5 → GUARD → SURGE → SURGE PRO（最後）。最後一個 ai_report 寫的
+      # artifacts/orders_<date>.json 與 stock_report.html 即 paper 追蹤的對象，故 SURGE PRO 最後跑。
+
+      # v8.5 純 baseline（binary regime，無 graduated/breadth/加碼）→ report_v85.html
+      - name: v8.5 baseline report (report_v85.html)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: |
+          python ai_report.py \
+            --no-hybrid-tiered --no-regime-graduated --no-breadth-regime --consec-loss-limit 3 \
+            --tp-atr ${{ github.event.inputs.tp_atr || '4.0' }} \
+            --sl-atr ${{ github.event.inputs.sl_atr || '3.0' }} \
+            --hold-days ${{ github.event.inputs.hold_days || '20' }} \
+            --top-k ${{ github.event.inputs.top_k || '7' }} \
+            --gap-filter ${{ github.event.inputs.gap_filter || '1.5' }} \
+            --start-date 2019-01-01 --eval-start 2019-01-01
+          sed -e 's#backtest_chart.png#chart_v85.png#g' \
+              -e 's#AI 台股量化交易 v8\.5#AI 台股量化交易 · v8.5 基準(純動量)#g' \
+              stock_report.html > report_v85.html
+          mv backtest_chart.png chart_v85.png
+
+      # GUARD（去風險、不加碼、最穩健）→ report_guard.html
+      - name: GUARD report (mom_guard)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: |
+          python ai_report.py \
+            --no-hybrid-tiered --consec-loss-limit 3 \
+            --sl-atr 3.5 --regime-floor 0.0 --dynamic-topk \
+            --corr-select-max 0.7 --corr-select-window 60 --corr-select-cap 2 \
+            --start-date 2019-01-01 --eval-start 2019-01-01
+          # 保存 GUARD 的當日訂單（下方 SURGE PRO 那步會覆蓋 orders_<date>.json，故先複製給 GUARD paper 用）
+          cp "$(ls -t artifacts/orders_2*.json | head -1)" artifacts/orders_guard_latest.json || true
+          sed -e 's#backtest_chart.png#chart_guard.png#g' \
+              -e 's#AI 台股量化交易 v8\.5#AI 台股量化交易 · GUARD 去風險#g' \
+              stock_report.html > report_guard.html
+          mv backtest_chart.png chart_guard.png
+
+      # SURGE（去風險 + 分段強勢加碼、追更高報酬）→ report_surge.html
+      - name: SURGE report (mom_surge)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: |
+          python ai_report.py \
+            --no-hybrid-tiered --consec-loss-limit 3 \
+            --sl-atr 3.5 --hold-days 22 --position-size 0.10 \
+            --regime-floor 0.0 --dynamic-topk --dynamic-gap-filter \
+            --regime-sizing --strong-regime-mult 1.25 --strong-breadth-min 0.55 \
+            --strong-vix-max 25.0 --max-regime-scale 1.7 \
+            --strong-tiers "0.65,20,1.45;0.75,15,1.75" \
+            --start-date 2019-01-01 --eval-start 2019-01-01
+          sed -e 's#backtest_chart.png#chart_surge.png#g' \
+              -e 's#AI 台股量化交易 v8\.5#AI 台股量化交易 · SURGE 強勢加碼#g' \
+              stock_report.html > report_surge.html
+          mv backtest_chart.png chart_surge.png
+
+      # SURGE PRO（更激進分段加碼、最強）→ 最後跑：stock_report.html(主報表)與 orders = SURGE PRO，paper 追此策略
+      - name: SURGE PRO report (mom_surge_pro) — 最後跑，paper 追蹤此策略
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: |
+          python ai_report.py \
+            --no-hybrid-tiered --consec-loss-limit 3 \
+            --sl-atr 3.5 --hold-days 25 --position-size 0.10 \
+            --regime-floor 0.0 --dynamic-topk --dynamic-gap-filter \
+            --regime-sizing --strong-regime-mult 1.25 --strong-breadth-min 0.55 \
+            --strong-vix-max 28.0 --max-regime-scale 1.9 \
+            --strong-tiers "0.62,18,1.7;0.72,15,1.85" \
+            --start-date 2019-01-01 --eval-start 2019-01-01
+          # report_surge_pro.html 用自己的圖檔；保留 stock_report.html + backtest_chart.png 當主報表
+          sed -e 's#backtest_chart.png#chart_surge_pro.png#g' \
+              -e 's#AI 台股量化交易 v8\.5#AI 台股量化交易 · SURGE PRO 追最高報酬#g' \
+              stock_report.html > report_surge_pro.html
+          cp backtest_chart.png chart_surge_pro.png
+          # 主報表 stock_report.html 的標題也改成 SURGE PRO（它就是最強策略）
+          sed -i 's#AI 台股量化交易 v8\.5#AI 台股量化交易 · SURGE PRO 追最高報酬#g' stock_report.html
+
+      # Paper 頁：四策略全期權益曲線比較 + 當日 SURGE PRO 訊號（乾淨版，無 v9 內容）
+      - name: Paper page (四策略比較)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: python build_paper_page.py
+
+      - name: Monthly Paper Trading Report
+        if: github.event.schedule == '0 10 1 * *'
+        run: python paper_trade.py monthly
+
+      - name: Cleanup old artifacts (keep last 180 days)
+        run: |
+          if [ -d "artifacts" ]; then
+            find artifacts/ -type f -mtime +180 -delete 2>/dev/null || true
+          fi
+
+      - name: Commit and push
+        run: |
+          git config --global user.email "voidful.stack@gmail.com"
+          git config --global user.name "Voidful"
+
+          git add stock_report.html backtest_chart.png paper_trading.html paper_trading_guard.html paper_equity.json || true
+          git add report_v85.html chart_v85.png report_guard.html chart_guard.png index.html || true
+          git add report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png || true
+          git add -u artifacts || true
+
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "📊 AI Report v8.5 + GUARD/SURGE/SURGE PRO + Paper Trading ($(date -u '+%Y-%m-%d'))"
+          fi
+
+          # Rebase onto latest remote without downloading the full repository history.
+          git fetch --no-tags --depth=50 origin main:refs/remotes/origin/main
+          git rebase --autostash origin/main
+
+          git push origin HEAD:main
+
+  # 每季第一週自動跑 sweep + Monte Carlo + Walk-Forward
+  quarterly-health-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    # ★可靠性關鍵：此季度健檢（4次/年）失敗絕不能拖累「整體 run conclusion」，
+    #   否則 deploy_pages 的 workflow_run.conclusion=='success' 不成立 → 每日部署被跳過。
+    continue-on-error: true
+
+    steps:
+      - name: Check if quarterly (first week of Jan/Apr/Jul/Oct)
+        id: check
+        run: |
+          DAY=$(date -u '+%d')
+          MONTH=$(date -u '+%m')
+          if [ "$DAY" -le 7 ] && ([ "$MONTH" = "01" ] || [ "$MONTH" = "04" ] || [ "$MONTH" = "07" ] || [ "$MONTH" = "10" ]); then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.check.outputs.run == 'true'
+        with:
+          # Keep checkout shallow; full history is too large for hosted runners.
+          fetch-depth: 1
+          fetch-tags: false
+
+      - uses: actions/setup-python@v6
+        if: steps.check.outputs.run == 'true'
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        if: steps.check.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Quick Sweep
+        if: steps.check.outputs.run == 'true'
+        run: python sweep.py --quick --output csv
+
+      - name: Walk-Forward Validation
+        if: steps.check.outputs.run == 'true'
+        run: python walk_forward.py
+
+      - name: Monte Carlo Stress Test (Block Bootstrap)
+        if: steps.check.outputs.run == 'true'
+        run: |
+          LATEST_EQUITY=$(ls -t artifacts/equity_*.csv | head -1)
+          python monte_carlo.py --equity "$LATEST_EQUITY" --runs 2000 --block-size 5
+
+      - name: Upload quarterly report
+        if: steps.check.outputs.run == 'true'
+        run: |
+          git config --global user.email "voidful.stack@gmail.com"
+          git config --global user.name "Voidful"
+
+          # 不含 backtest_chart.png：generate-report 已提交它；若此處也改動會與其 rebase 衝突
+          # （"could not apply"），過去正是這造成季度 run 失敗、連累 deploy 被跳過。
+          git add factor_search_results.csv ablation_results.csv || true
+          git add -u artifacts || true
+
+          if git diff --cached --quiet; then
+            echo "No changes"; exit 0
+          fi
+          git commit -m "🔄 Quarterly health check ($(date -u '+%Y-%m-%d'))"
+
+          # 與 generate-report 併發 push：重試處理 non-fast-forward（各自檔案不重疊故 rebase 應乾淨）
+          for i in 1 2 3 4 5; do
+            git fetch --no-tags --depth=50 origin main:refs/remotes/origin/main
+            git rebase --autostash origin/main || { git rebase --abort || true; git reset --soft HEAD; }
+            if git push origin HEAD:main; then echo "pushed on try $i"; exit 0; fi
+            echo "push retry $i (non-fast-forward)"; sleep 8
+          done
+          echo "quarterly push failed after retries — 不阻擋部署（continue-on-error）"; exit 1

@@ -1,0 +1,90 @@
+name: Deploy GitHub Pages
+
+# 2026-07 改版：改用「push 靜態檔到 gh-pages 分支 + Pages legacy 直出」。
+# 原因：actions/deploy-pages@v4 的 artifact 部署佇列曾整站卡死（deployment_queued
+# 直到 timeout，持續 12+ 小時），且 rerun 會因重複 artifact 名稱必失敗。
+# gh-pages 為單一扁平 commit（每次 force push 覆蓋），不膨脹歷史。
+# Pages 設定：Source = Deploy from a branch / gh-pages / root。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'stock_report.html'
+      - 'paper_trading.html'
+      - 'backtest_chart.png'
+      - 'index.html'
+      - '.nojekyll'
+      - '.github/workflows/deploy_pages.yml'
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['AI Quant Trading Report v9']
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # push gh-pages 分支
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
+          fetch-depth: 1
+          fetch-tags: false
+          sparse-checkout: |
+            stock_report.html
+            paper_trading.html
+            paper_trading_guard.html
+            backtest_chart.png
+            index.html
+            report_v85.html
+            chart_v85.png
+            report_guard.html
+            chart_guard.png
+            report_surge.html
+            chart_surge.png
+            report_surge_pro.html
+            chart_surge_pro.png
+            .nojekyll
+          sparse-checkout-cone-mode: false
+
+      - name: Prepare static site
+        run: |
+          mkdir -p _site
+          for f in stock_report.html paper_trading.html backtest_chart.png index.html; do
+            if [ ! -f "$f" ]; then
+              echo "Missing required file: $f"
+              exit 1
+            fi
+            cp "$f" _site/
+          done
+          # 四策略頁 + GUARD paper：可選，缺檔不致命
+          for f in report_v85.html chart_v85.png report_guard.html chart_guard.png report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png paper_trading_guard.html; do
+            if [ -f "$f" ]; then cp "$f" _site/; else echo "optional missing: $f"; fi
+          done
+          cp .nojekyll _site/ 2>/dev/null || touch _site/.nojekyll
+          echo "Site files:"
+          ls -lh _site/
+
+      - name: Push to gh-pages（單一扁平 commit，force 覆蓋）
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd _site
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "pages: site snapshot $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" gh-pages
+          echo "✅ 已推 gh-pages；GitHub Pages 會自動以 legacy build 重建（Source=gh-pages）"
