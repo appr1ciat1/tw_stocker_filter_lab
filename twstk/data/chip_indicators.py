@@ -100,9 +100,10 @@ def _needs_refresh(frame: pd.DataFrame, end_date) -> bool:
     if frame is None or frame.empty:
         return True
     end = pd.Timestamp(end_date)
-    # Exchange data may lag one or two business days.  Do not refetch merely
-    # because today is a weekend/holiday.
-    return frame.index.max() < end - pd.Timedelta(days=5)
+    # This function is only consulted when refresh_latest=True.  The daily
+    # workflow already excludes weekends/holidays, so attempt an incremental
+    # refresh whenever the cache does not yet contain the latest price date.
+    return pd.Timestamp(frame.index.max()).normalize() < end.normalize()
 
 
 def _incremental_refresh(tickers, margin, short, sbl, end_date, verbose):

@@ -198,7 +198,9 @@ def fetch_global_context(
         need_download = (
             cached is None or cached.empty
             or cached.index.min() > pd.Timestamp(start_date) - pd.Timedelta(days=80)
-            or cached.index.max() < pd.Timestamp(end_date) - pd.Timedelta(days=5)
+            # Taiwan date T may use the last completed US session strictly
+            # before T. Refresh when that prior session can be missing.
+            or cached.index.max() < pd.Timestamp(end_date) - pd.Timedelta(days=1)
         )
         try:
             if need_download:
@@ -215,6 +217,14 @@ def fetch_global_context(
                 bars = cached
         except Exception:
             bars = cached if cached is not None else pd.DataFrame()
+        if bars.empty:
+            failed.append(symbol)
+            continue
+        # Old cache snapshots can carry object dtype after pickle/schema
+        # changes.  Force numeric OHLC before rolling volatility and np.tanh.
+        bars = bars[["Open", "High", "Low", "Close"]].apply(
+            pd.to_numeric, errors="coerce"
+        ).astype(float).dropna(how="all")
         if bars.empty:
             failed.append(symbol)
             continue
@@ -237,6 +247,10 @@ def fetch_global_context(
         renamed = feat.rename(columns=lambda c: c.replace(old_prefix, label, 1))
         overnight_parts.append(renamed)
     raw_overnight = pd.concat(overnight_parts, axis=1).sort_index() if overnight_parts else pd.DataFrame()
+    if not raw_overnight.empty:
+        raw_overnight["completed_us_session_ordinal"] = [
+            value.toordinal() for value in raw_overnight.index
+        ]
     overnight = align_completed_us_session(raw_overnight, tw_dates)
 
     # Composite emphasizes semiconductors because Taiwan's index earnings and

@@ -12,15 +12,15 @@
 
 ## 📊 線上報表（GitHub Pages，每工作日收盤後自動更新）
 
-**https://appr1ciat1.github.io/tw_stocker/** — 策略選單（四策略 + Paper）
+**https://appr1ciat1.github.io/tw_stocker_filter_lab/** — 獨立 Filter Lab 策略選單
 
 | 卡片 | 內容 |
 |---|---|
-| [SURGE PRO](https://appr1ciat1.github.io/tw_stocker/report_surge_pro.html) | 最強策略：去風險 + 更激進分段加碼 |
-| [SURGE](https://appr1ciat1.github.io/tw_stocker/report_surge.html) | 去風險 + 分段強勢加碼 |
-| [GUARD](https://appr1ciat1.github.io/tw_stocker/report_guard.html) | 弱勢去風險，不加碼，最穩健 |
-| [v8.5 基準](https://appr1ciat1.github.io/tw_stocker/report_v85.html) | 純動量 v8.5，優化前基準 |
-| [Paper Trading](https://appr1ciat1.github.io/tw_stocker/paper_trading.html) | 模擬實盤 —— **追蹤 SURGE PRO**（最強策略）的每日訊號 |
+| [v8.5 CONFIRMED FILTER](https://appr1ciat1.github.io/tw_stocker_filter_lab/paper_trading_v85_confirmed.html) | v8.5 第一件事獨立濾網版 |
+| [SURGE PRO CONFIRMED FILTER](https://appr1ciat1.github.io/tw_stocker_filter_lab/paper_trading_surge_pro_confirmed.html) | SURGE PRO 第一件事獨立濾網版 |
+| [v8.5 300K](https://appr1ciat1.github.io/tw_stocker_filter_lab/paper_trading_v85_300k.html) | v8.5 第二件事獨立 30 萬版 |
+| [SURGE PRO 300K](https://appr1ciat1.github.io/tw_stocker_filter_lab/paper_trading_surge_pro_300k.html) | SURGE PRO 第二件事獨立 30 萬版 |
+| [Capital Rotation Alert](https://appr1ciat1.github.io/tw_stocker_filter_lab/capital_rotation_alert.html) | SURGE PRO 第三件事，三日確認警示 |
 
 > 報表數字為**全期 2019-01-01 → 回測當日**（`--eval-start 2019-01-01`），與下表一致；
 > 點時間值，會隨資料更新而漂移，非恆定保證。

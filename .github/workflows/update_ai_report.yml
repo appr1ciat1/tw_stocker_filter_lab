@@ -1,10 +1,10 @@
-name: AI Quant Trading Report v9
+name: AI Quant Filter Lab Daily Update
 
 on:
   schedule:
-    # 每週一到六 UTC 09:17（台灣時間 17:17 收盤後）。含週六以涵蓋台股「補班補課」交易日；
-    # 實際是否為交易日由下方 "Check Taiwan trading day" 步驟用 XTAI 行事曆判定，非交易日自動跳過。
-    - cron: '17 9 * * 1-6'
+    # 每週一到五 UTC 14:00（台灣時間 22:00）；下方 XTAI 行事曆
+    # 會再排除台股休市日，workflow_dispatch 則保留人工補跑能力。
+    - cron: '0 14 * * 1-5'
     # 每月 1 日 UTC 10:00 跑月報
     - cron: '0 10 1 * *'
   workflow_dispatch:
@@ -62,6 +62,18 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Restore incremental market-data caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            artifacts/global_context_ohlc.pkl
+            artifacts/margin_cache.pkl
+            artifacts/sbl_7yr_cache.pkl
+            artifacts/sbl_balances_cache.pkl
+          key: filter-market-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            filter-market-cache-${{ runner.os }}-
 
       # 用 XTAI（台股）行事曆判定「今天台灣時間是否為交易日」。
       # 排程在非交易日（含週末、國定假日）會自動跳過；手動 workflow_dispatch 一律執行。
@@ -164,6 +176,18 @@ jobs:
         if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
         run: python build_paper_page.py
 
+      - name: Confirmed filter pages (v8.5 / SURGE PRO)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: |
+          for attempt in 1 2 3; do
+            python build_confirmed_filter_pages.py --start 2025-01-01 && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "Filter data validation failed; retry $attempt/3 after provider cooldown"
+              sleep $((attempt * 30))
+            fi
+          done
+          exit 1
+
       - name: Paper pages (v8.5 / SURGE PRO · 30萬獨立版)
         if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
         run: python build_paper_300k.py --start 2019-01-01
@@ -188,6 +212,8 @@ jobs:
           git config --global user.name "Voidful"
 
           git add stock_report.html backtest_chart.png paper_trading.html paper_trading_guard.html paper_equity.json || true
+          git add paper_trading_v85_confirmed.html paper_trading_v85_confirmed.json || true
+          git add paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json || true
           git add paper_trading_v85_300k.html paper_trading_surge_pro_300k.html || true
           git add capital_rotation_alert.html capital_rotation_alert_latest.json || true
           git add report_v85.html chart_v85.png report_guard.html chart_guard.png index.html || true

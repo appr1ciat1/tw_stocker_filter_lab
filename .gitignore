@@ -186,3 +186,12 @@ artifacts/sbl_cache.pkl
 artifacts/sbl_7yr_cache.pkl
 artifacts/sbl_balances_cache.pkl
 artifacts/margin_cache.pkl
+
+# Filter Lab publishes these generated snapshots on every trading day.
+!stock_report.html
+!paper_trading.html
+!paper_equity.json
+!paper_trading_v85_confirmed.html
+!paper_trading_v85_confirmed.json
+!paper_trading_surge_pro_confirmed.html
+!paper_trading_surge_pro_confirmed.json

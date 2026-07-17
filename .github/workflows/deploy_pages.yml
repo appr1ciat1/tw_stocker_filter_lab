@@ -12,6 +12,10 @@ on:
     paths:
       - 'stock_report.html'
       - 'paper_trading.html'
+      - 'paper_trading_v85_confirmed.html'
+      - 'paper_trading_v85_confirmed.json'
+      - 'paper_trading_surge_pro_confirmed.html'
+      - 'paper_trading_surge_pro_confirmed.json'
       - 'paper_trading_v85_300k.html'
       - 'paper_trading_surge_pro_300k.html'
       - 'capital_rotation_alert.html'
@@ -22,7 +26,7 @@ on:
       - '.github/workflows/deploy_pages.yml'
   workflow_dispatch:
   workflow_run:
-    workflows: ['AI Quant Trading Report v9']
+    workflows: ['AI Quant Filter Lab Daily Update']
     types: [completed]
     branches: [main]
 
@@ -49,6 +53,10 @@ jobs:
             stock_report.html
             paper_trading.html
             paper_trading_guard.html
+            paper_trading_v85_confirmed.html
+            paper_trading_v85_confirmed.json
+            paper_trading_surge_pro_confirmed.html
+            paper_trading_surge_pro_confirmed.json
             paper_trading_v85_300k.html
             paper_trading_surge_pro_300k.html
             capital_rotation_alert.html
@@ -77,7 +85,7 @@ jobs:
             cp "$f" _site/
           done
           # 四策略頁 + GUARD paper：可選，缺檔不致命
-          for f in report_v85.html chart_v85.png report_guard.html chart_guard.png report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png paper_trading_guard.html paper_trading_v85_300k.html paper_trading_surge_pro_300k.html capital_rotation_alert.html capital_rotation_alert_latest.json; do
+          for f in report_v85.html chart_v85.png report_guard.html chart_guard.png report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png paper_trading_guard.html paper_trading_v85_confirmed.html paper_trading_v85_confirmed.json paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json paper_trading_v85_300k.html paper_trading_surge_pro_300k.html capital_rotation_alert.html capital_rotation_alert_latest.json; do
             if [ -f "$f" ]; then cp "$f" _site/; else echo "optional missing: $f"; fi
           done
           cp .nojekyll _site/ 2>/dev/null || touch _site/.nojekyll

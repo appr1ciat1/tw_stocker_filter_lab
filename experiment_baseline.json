@@ -1,10 +1,11 @@
 {
-  "project": "tw_stocker_strategy_lab",
-  "source_repository": "https://github.com/appr1ciat1/tw_stocker",
+  "project": "tw_stocker_filter_lab",
+  "source_repository": "https://github.com/appr1ciat1/tst_wocker",
   "source_commit": "d0fe61b0a1701873868b301e52cf2820de28bf84",
   "source_snapshot_commit": "509e06d",
   "baseline_tag": "baseline-original-d0fe61b",
-  "remote_intentionally_unset": true,
+  "publication_repository": "https://github.com/appr1ciat1/tw_stocker_filter_lab",
+  "production_remote_blocked": true,
   "variants": [
     {"parent": "v8.5", "name": "momentum_v85_confirmed", "purpose": "entry_confirmation"},
     {"parent": "v8.5", "name": "momentum_v85_300k", "purpose": "capital_300k"},

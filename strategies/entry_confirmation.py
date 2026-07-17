@@ -231,13 +231,17 @@ class MomentumV85Confirmed(EngineStrategy):
             hybrid_tiered=False, buy_cost=exec_cfg.buy_cost,
             sell_cost=exec_cfg.sell_cost, slippage=exec_cfg.slippage,
         )
-        return bt.run(
+        result = bt.run(
             bundle.total_score, data.close, data.open, data.high, data.low,
             bundle.ma_long, top_k=exec_cfg.top_k, threshold=exec_cfg.threshold,
             market_close=data.market_close, vol_df=data.volume,
             universe_mask=data.universe_mask,
             entry_gate_df=layers.entry_gate, entry_scale_df=layers.entry_scale,
         )
+        self.last_positions = getattr(bt, "last_positions", {})
+        self.last_cash = getattr(bt, "last_cash", exec_cfg.initial_capital)
+        self.last_confirmation_layers = layers
+        return result
 
 
 @register("mom_surge_pro_confirmed")
@@ -251,13 +255,17 @@ class MomSurgeProConfirmed(EngineStrategy):
         bundle = MomentumV85().prepare(data)
         layers = build_confirmation_layers(data, profile="surge")
         bt = _build_engine({**SURGE_PRO_PARAMS, **self.params}, exec_cfg)
-        return bt.run(
+        result = bt.run(
             bundle.total_score, data.close, data.open, data.high, data.low,
             bundle.ma_long, top_k=exec_cfg.top_k, threshold=exec_cfg.threshold,
             market_close=data.market_close, vol_df=data.volume,
             universe_mask=data.universe_mask,
             entry_gate_df=layers.entry_gate, entry_scale_df=layers.entry_scale,
         )
+        self.last_positions = getattr(bt, "last_positions", {})
+        self.last_cash = getattr(bt, "last_cash", exec_cfg.initial_capital)
+        self.last_confirmation_layers = layers
+        return result
 
 
 __all__ = [

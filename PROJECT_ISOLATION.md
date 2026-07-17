@@ -5,7 +5,7 @@ share the production repository's Git history or remote.
 
 ## Frozen production baseline
 
-- Source repository: `https://github.com/appr1ciat1/tw_stocker`
+- Source repository (renamed): `https://github.com/appr1ciat1/tst_wocker`
 - Source commit: `d0fe61b0a1701873868b301e52cf2820de28bf84`
 - Source-only baseline snapshot commit: `509e06d`
 - Immutable local tag: `baseline-original-d0fe61b`
@@ -14,8 +14,10 @@ The source commit is the 2026-07-15 automated report refresh and predates all
 five variants. The baseline commit contains only strategy source, configuration
 and tests; bulky generated production reports are intentionally excluded.
 
-This lab has no Git remote by default. A local pre-push hook also blocks the
-production URL `https://github.com/appr1ciat1/tw_stocker.git`.
+The lab is published only to
+`https://github.com/appr1ciat1/tw_stocker_filter_lab`. A local pre-push hook
+blocks both the old production URL and its current URL
+`https://github.com/appr1ciat1/tst_wocker.git`.
 
 ## Five variants
 
@@ -41,5 +43,6 @@ python -m twstk.backtest.runner --list
 pytest -q test_new_strategy_variants.py
 ```
 
-When publishing, create a different GitHub repository, for example
-`appr1ciat1/tw_stocker_strategy_lab`, and add only that URL as `origin`.
+The public destination for this isolated project is
+`appr1ciat1/tw_stocker_filter_lab`. Add only that URL as `origin`; the
+production repository remains blocked by the local pre-push guard.

@@ -1,9 +1,56 @@
 {
-  "as_of_close": "2026-07-15",
+  "as_of_close": "2026-07-17",
   "confirmation_days": 3,
   "warning_only": true,
   "automatic_trade_action": false,
-  "active_alert_count": 0,
-  "active_alerts": [],
-  "recent_new_alerts_20_sessions": []
+  "active_alert_count": 1,
+  "active_alerts": [
+    {
+      "signal_date": "2026-07-17",
+      "available_next_session": true,
+      "source_sector": "electronics",
+      "destination_sector": "shipping",
+      "confirmation_days": 4,
+      "source_score": 0.29333333333333333,
+      "destination_score": 0.9616666666666667,
+      "score_spread": 0.6683333333333333,
+      "source_score_change_5d": -0.20666666666666667,
+      "destination_score_change_5d": 0.46166666666666667,
+      "source_return_5d": -0.05553092986603625,
+      "destination_return_5d": 0.058080887383389124,
+      "source_turnover_acceleration": -0.05708619738464077,
+      "destination_turnover_acceleration": 0.002732037444083568,
+      "source_breadth_above_20d": 0.0,
+      "destination_breadth_above_20d": 1.0,
+      "source_institutional_flow": 0.5563169043793508,
+      "destination_institutional_flow": 2.3226012964646485,
+      "average_correlation_20d": 0.6215689922302993,
+      "warning_only": true,
+      "automatic_trade_action": false
+    }
+  ],
+  "recent_new_alerts_20_sessions": [
+    {
+      "signal_date": "2026-07-16",
+      "source_sector": "electronics",
+      "destination_sector": "shipping",
+      "confirmation_days": 3,
+      "source_score": 0.23833333333333334,
+      "destination_score": 0.925,
+      "score_spread": 0.6866666666666668,
+      "source_score_change_5d": -0.09166666666666667,
+      "destination_score_change_5d": 0.17333333333333345,
+      "source_return_5d": -0.05787037037037035,
+      "destination_return_5d": 0.058080887383389124,
+      "source_return_20d": -0.10545945222183084,
+      "destination_return_20d": 0.03347263721287863,
+      "source_turnover_acceleration": -0.31313478038609766,
+      "destination_turnover_acceleration": -0.14865754702544376,
+      "source_breadth_above_20d": 0.0,
+      "destination_breadth_above_20d": 1.0,
+      "source_institutional_flow": -0.13174726038199935,
+      "destination_institutional_flow": 1.7455650488953647,
+      "average_correlation_20d": 0.6247164392801019
+    }
+  ]
 }
