@@ -39,7 +39,7 @@
 
 第一件事資料嚴格以台股開盤前的完整美股交易日為準，例如 7/16 台股開盤只使用 7/15 的 S&P 500、SOX、TSM ADR 開盤／日內區間／收盤；個股另映射全球龍頭。融資、融券、借券保留原始數量後，以前一日變化做橫斷面標準化，避免前視與規模偏誤。
 
-第二件事的 paper 頁：[`paper_trading_v85_300k.html`](paper_trading_v85_300k.html) 與 [`paper_trading_surge_pro_300k.html`](paper_trading_surge_pro_300k.html)。第三件事的每日監控頁是 [`capital_rotation_alert.html`](capital_rotation_alert.html)，逐筆十年結果在 `artifacts/capital_rotation_*_10y.csv/json`；3 日確認共有 192 次事件，回撤中位領先 20 個交易日，但 20% 回撤命中率未優於配對基準。此版本只在收盤後產生下一交易日可見警報，不改變持倉；警報後的回撤統計只用來決定監控頻率，不得解讀為預測機率或賣出期限。
+第二件事的 paper 頁：[`paper_trading_v85_300k.html`](paper_trading_v85_300k.html) 與 [`paper_trading_surge_pro_300k.html`](paper_trading_surge_pro_300k.html)。第三件事的每日監控頁是 [`capital_rotation_alert.html`](capital_rotation_alert.html)，頁面完整列出 192 次三日確認事件，且每一筆可展開查看全部 5,596 筆逐股結果；可重現原始檔為 [`capital_rotation_history_10y.json`](capital_rotation_history_10y.json) 與根目錄下的 `capital_rotation_*_10y.csv/json`。20% 回撤命中率未優於配對基準，因此此版本只在收盤後產生下一交易日可見警報，不改變持倉；回撤日期與前一交易日只記錄歷史結果，不得解讀為預測機率或賣出期限。
 
 ---
 

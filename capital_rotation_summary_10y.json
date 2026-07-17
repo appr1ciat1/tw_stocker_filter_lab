@@ -1,0 +1,110 @@
+{
+  "period": {
+    "start": "2016-07-01",
+    "end": "2026-07-07"
+  },
+  "chosen_confirmation_days": 3,
+  "headline": {
+    "confirmation_days": 3,
+    "events": 192,
+    "events_with_20pct_drawdown": 182,
+    "event_hit_rate": 0.9479166666666666,
+    "stocks_tested": 5596,
+    "stock_hit_rate": 0.43727662616154395,
+    "median_lead_days": 20.0,
+    "p20_lead_days": 3.0,
+    "p80_lead_days": 59.0,
+    "alert_urgency_p10_days": 1.0,
+    "matched_control_stock_hit_rate": 0.44352100089365504,
+    "stock_hit_rate_lift": -0.006244374732111091,
+    "matched_control_median_lead_days": 26.0
+  },
+  "sensitivity": [
+    {
+      "confirmation_days": 2,
+      "events": 318,
+      "events_with_20pct_drawdown": 297,
+      "event_hit_rate": 0.9339622641509434,
+      "stocks_tested": 9286,
+      "stock_hit_rate": 0.446586258884342,
+      "median_lead_days": 24.0,
+      "p20_lead_days": 5.0,
+      "p80_lead_days": 62.0,
+      "alert_urgency_p10_days": 1.0
+    },
+    {
+      "confirmation_days": 3,
+      "events": 192,
+      "events_with_20pct_drawdown": 182,
+      "event_hit_rate": 0.9479166666666666,
+      "stocks_tested": 5596,
+      "stock_hit_rate": 0.43727662616154395,
+      "median_lead_days": 20.0,
+      "p20_lead_days": 3.0,
+      "p80_lead_days": 59.0,
+      "alert_urgency_p10_days": 1.0,
+      "matched_control_stock_hit_rate": 0.44352100089365504,
+      "stock_hit_rate_lift": -0.006244374732111091,
+      "matched_control_median_lead_days": 26.0
+    },
+    {
+      "confirmation_days": 4,
+      "events": 104,
+      "events_with_20pct_drawdown": 101,
+      "event_hit_rate": 0.9711538461538461,
+      "stocks_tested": 3026,
+      "stock_hit_rate": 0.4722405816259088,
+      "median_lead_days": 16.0,
+      "p20_lead_days": 3.0,
+      "p80_lead_days": 54.0,
+      "alert_urgency_p10_days": 1.0
+    },
+    {
+      "confirmation_days": 5,
+      "events": 48,
+      "events_with_20pct_drawdown": 45,
+      "event_hit_rate": 0.9375,
+      "stocks_tested": 1401,
+      "stock_hit_rate": 0.48108493932905066,
+      "median_lead_days": 11.0,
+      "p20_lead_days": 1.0,
+      "p80_lead_days": 43.0,
+      "alert_urgency_p10_days": 1.0
+    }
+  ],
+  "matched_control": {
+    "confirmation_days": 3,
+    "events": 384,
+    "events_with_20pct_drawdown": 361,
+    "event_hit_rate": 0.9401041666666666,
+    "stocks_tested": 11190,
+    "stock_hit_rate": 0.44352100089365504,
+    "median_lead_days": 26.0,
+    "p20_lead_days": 5.0,
+    "p80_lead_days": 69.0,
+    "alert_urgency_p10_days": 1.0
+  },
+  "method": {
+    "drawdown": 0.2,
+    "pre_signal_peak_days": 20,
+    "forward_trading_days": 120,
+    "max_liquid_stocks_per_sector_event": 30,
+    "price_source": "frozen full-market daily price/volume cache",
+    "institutional_source": "frozen full-market institutional-flow cache",
+    "sector_membership": "ticker-prefix sector map used by this repository",
+    "last_session_field": "last observed market session before the first close at or below 80% of the 20-session reference peak",
+    "purpose": "warning_calibration_only",
+    "automatic_trade_action": false,
+    "predictive_probability_claim": false,
+    "event_features": [
+      "score_spread",
+      "score_change_5d",
+      "sector_return_5d",
+      "sector_return_20d",
+      "turnover_acceleration",
+      "breadth_above_20d",
+      "institutional_flow",
+      "average_correlation_20d"
+    ]
+  }
+}

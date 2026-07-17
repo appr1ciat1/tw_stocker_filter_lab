@@ -1,0 +1,5 @@
+﻿confirmation_days,events,events_with_20pct_drawdown,event_hit_rate,stocks_tested,stock_hit_rate,median_lead_days,p20_lead_days,p80_lead_days,alert_urgency_p10_days,matched_control_stock_hit_rate,stock_hit_rate_lift,matched_control_median_lead_days
+2,318,297,0.9339622641509434,9286,0.446586258884342,24.0,5.0,62.0,1.0,,,
+3,192,182,0.9479166666666666,5596,0.43727662616154395,20.0,3.0,59.0,1.0,0.44352100089365504,-0.006244374732111091,26.0
+4,104,101,0.9711538461538461,3026,0.4722405816259088,16.0,3.0,54.0,1.0,,,
+5,48,45,0.9375,1401,0.48108493932905066,11.0,1.0,43.0,1.0,,,

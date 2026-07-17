@@ -20,6 +20,13 @@ on:
       - 'paper_trading_surge_pro_300k.html'
       - 'capital_rotation_alert.html'
       - 'capital_rotation_alert_latest.json'
+      - 'capital_rotation_history_10y.json'
+      - 'capital_rotation_events_10y.csv'
+      - 'capital_rotation_event_summary_10y.csv'
+      - 'capital_rotation_drawdowns_10y.csv'
+      - 'capital_rotation_matched_control_10y.csv'
+      - 'capital_rotation_sensitivity_10y.csv'
+      - 'capital_rotation_summary_10y.json'
       - 'backtest_chart.png'
       - 'index.html'
       - '.nojekyll'
@@ -61,6 +68,13 @@ jobs:
             paper_trading_surge_pro_300k.html
             capital_rotation_alert.html
             capital_rotation_alert_latest.json
+            capital_rotation_history_10y.json
+            capital_rotation_events_10y.csv
+            capital_rotation_event_summary_10y.csv
+            capital_rotation_drawdowns_10y.csv
+            capital_rotation_matched_control_10y.csv
+            capital_rotation_sensitivity_10y.csv
+            capital_rotation_summary_10y.json
             backtest_chart.png
             index.html
             report_v85.html
@@ -85,7 +99,7 @@ jobs:
             cp "$f" _site/
           done
           # 四策略頁 + GUARD paper：可選，缺檔不致命
-          for f in report_v85.html chart_v85.png report_guard.html chart_guard.png report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png paper_trading_guard.html paper_trading_v85_confirmed.html paper_trading_v85_confirmed.json paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json paper_trading_v85_300k.html paper_trading_surge_pro_300k.html capital_rotation_alert.html capital_rotation_alert_latest.json; do
+          for f in report_v85.html chart_v85.png report_guard.html chart_guard.png report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png paper_trading_guard.html paper_trading_v85_confirmed.html paper_trading_v85_confirmed.json paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json paper_trading_v85_300k.html paper_trading_surge_pro_300k.html capital_rotation_alert.html capital_rotation_alert_latest.json capital_rotation_history_10y.json capital_rotation_events_10y.csv capital_rotation_event_summary_10y.csv capital_rotation_drawdowns_10y.csv capital_rotation_matched_control_10y.csv capital_rotation_sensitivity_10y.csv capital_rotation_summary_10y.json; do
             if [ -f "$f" ]; then cp "$f" _site/; else echo "optional missing: $f"; fi
           done
           cp .nojekyll _site/ 2>/dev/null || touch _site/.nojekyll

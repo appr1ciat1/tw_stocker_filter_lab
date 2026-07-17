@@ -8,9 +8,11 @@ urgency; they are not trading orders or a claim of predictive probability.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import pickle
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -27,6 +29,7 @@ from strategy.sector_flow import SECTOR_MAP
 ARTIFACTS = "artifacts"
 PRICE_CACHE = os.path.join(ARTIFACTS, "wbr_fullmkt_prices.pkl")
 INST_CACHE = os.path.join(ARTIFACTS, "wbr_fullmkt_inst.pkl")
+PUBLIC_HISTORY_JSON = Path("capital_rotation_history_10y.json")
 
 
 def _json_value(value):
@@ -39,6 +42,123 @@ def _json_value(value):
     if isinstance(value, pd.Timestamp):
         return value.strftime("%Y-%m-%d")
     return value
+
+
+def _strict_records(frame):
+    """Return JSON-safe records without non-standard NaN/Infinity values."""
+    if frame is None or frame.empty:
+        return []
+    clean = frame.replace([np.inf, -np.inf], np.nan).copy()
+    for column in clean.columns:
+        if pd.api.types.is_datetime64_any_dtype(clean[column]):
+            clean[column] = clean[column].dt.strftime("%Y-%m-%d")
+    return [
+        {str(key): _json_value(value) for key, value in row.items()}
+        for row in clean.to_dict("records")
+    ]
+
+
+def _add_observed_pre_drawdown_sessions(detail, event_summary, sessions):
+    """Add the last observed market session before the first 20% threshold hit."""
+    if detail.empty:
+        return detail, event_summary
+    sessions = pd.DatetimeIndex(sessions).sort_values().unique()
+    prior_by_date = {}
+    for value in pd.to_datetime(detail["drawdown_date"], errors="coerce").dropna().unique():
+        date = pd.Timestamp(value)
+        position = int(sessions.searchsorted(date, side="left"))
+        prior_by_date[date] = sessions[position - 1] if position > 0 else pd.NaT
+    detail = detail.copy()
+    drawdown_dates = pd.to_datetime(detail["drawdown_date"], errors="coerce")
+    detail["last_session_before_drawdown"] = drawdown_dates.map(prior_by_date)
+
+    event_summary = event_summary.copy()
+    earliest_rows = (
+        detail.loc[detail["hit_20pct"] & detail["lead_trading_days"].notna()]
+        .sort_values(["event_id", "lead_trading_days", "drawdown_date", "ticker"])
+        .drop_duplicates("event_id")
+        .set_index("event_id")
+    )
+    event_summary["earliest_drawdown_date"] = event_summary["event_id"].map(
+        earliest_rows["drawdown_date"] if len(earliest_rows) else {}
+    )
+    event_summary["last_session_before_earliest_drawdown"] = event_summary["event_id"].map(
+        earliest_rows["last_session_before_drawdown"] if len(earliest_rows) else {}
+    )
+    return detail, event_summary
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _publish_history(events, detail, event_summary, sensitivity, controls, payload):
+    """Publish reproducible event-level and stock-level history at site root."""
+    public_frames = {
+        "capital_rotation_events_10y.csv": events,
+        "capital_rotation_event_summary_10y.csv": event_summary,
+        "capital_rotation_drawdowns_10y.csv": detail,
+        "capital_rotation_matched_control_10y.csv": controls,
+        "capital_rotation_sensitivity_10y.csv": sensitivity,
+    }
+    file_manifest = {}
+    for filename, frame in public_frames.items():
+        frame.to_csv(filename, index=False, encoding="utf-8-sig")
+        file_manifest[filename] = {
+            "rows": int(len(frame)),
+            "sha256": _sha256(filename),
+        }
+    Path("capital_rotation_summary_10y.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    file_manifest["capital_rotation_summary_10y.json"] = {
+        "rows": 1,
+        "sha256": _sha256("capital_rotation_summary_10y.json"),
+    }
+
+    indexed_events = events.copy().reset_index(drop=True)
+    if "event_id" not in indexed_events:
+        indexed_events.insert(0, "event_id", indexed_events.index.astype(int))
+    summary_by_id = (
+        event_summary.set_index("event_id").to_dict("index")
+        if len(event_summary) else {}
+    )
+    details_by_id = {
+        int(event_id): _strict_records(group)
+        for event_id, group in detail.groupby("event_id", sort=True)
+    }
+    event_records = []
+    for event in _strict_records(indexed_events):
+        event_id = int(event["event_id"])
+        event_records.append({
+            "event_id": event_id,
+            "signal": event,
+            "outcome": {
+                str(key): _json_value(value)
+                for key, value in summary_by_id.get(event_id, {}).items()
+            },
+            "stocks": details_by_id.get(event_id, []),
+        })
+    history = {
+        "schema_version": 1,
+        "period": payload["period"],
+        "headline": payload["headline"],
+        "method": payload["method"],
+        "event_count": int(len(event_records)),
+        "stock_test_count": int(len(detail)),
+        "files": file_manifest,
+        "events": event_records,
+    }
+    PUBLIC_HISTORY_JSON.write_text(
+        json.dumps(history, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    return file_manifest
 
 
 def _load(start, end, use_inst=True):
@@ -180,6 +300,9 @@ def main(argv=None):
                   _summary(detail, event_summary, events, args.confirm_days))
 
     _, events, detail, event_summary, headline = chosen
+    detail, event_summary = _add_observed_pre_drawdown_sessions(
+        detail, event_summary, close.index,
+    )
     controls = _matched_control_events(base_model, events, args.start, args.end)
     control_detail, control_event_summary = analyze_forward_drawdowns(
         close, volume, controls, forward_days=args.forward_days,
@@ -201,6 +324,8 @@ def main(argv=None):
                 frame["source_sector_label"] = frame["source_sector"].map(label)
             if "destination_sector" in frame:
                 frame["destination_sector_label"] = frame["destination_sector"].map(label)
+    if len(events) and "event_id" not in events:
+        events.insert(0, "event_id", events.index.astype(int))
 
     os.makedirs(ARTIFACTS, exist_ok=True)
     paths = {
@@ -214,7 +339,8 @@ def main(argv=None):
     events.to_csv(paths["events"], index=False, encoding="utf-8-sig")
     detail.to_csv(paths["detail"], index=False, encoding="utf-8-sig")
     event_summary.to_csv(paths["event_summary"], index=False, encoding="utf-8-sig")
-    pd.DataFrame(sensitivity_rows).to_csv(paths["sensitivity"], index=False, encoding="utf-8-sig")
+    sensitivity = pd.DataFrame(sensitivity_rows)
+    sensitivity.to_csv(paths["sensitivity"], index=False, encoding="utf-8-sig")
     control_detail.to_csv(paths["control"], index=False, encoding="utf-8-sig")
     payload = {
         "period": {"start": args.start, "end": args.end},
@@ -228,6 +354,13 @@ def main(argv=None):
             "drawdown": 0.20, "pre_signal_peak_days": 20,
             "forward_trading_days": args.forward_days,
             "max_liquid_stocks_per_sector_event": 30,
+            "price_source": "frozen full-market daily price/volume cache",
+            "institutional_source": "frozen full-market institutional-flow cache",
+            "sector_membership": "ticker-prefix sector map used by this repository",
+            "last_session_field": (
+                "last observed market session before the first close at or below "
+                "80% of the 20-session reference peak"
+            ),
             "purpose": "warning_calibration_only",
             "automatic_trade_action": False,
             "predictive_probability_claim": False,
@@ -240,8 +373,12 @@ def main(argv=None):
         },
     }
     with open(paths["json"], "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2, allow_nan=False)
+    manifest = _publish_history(
+        events, detail, event_summary, sensitivity, control_detail, payload,
+    )
     print(f"\n已輸出：{paths}")
+    print(f"公開完整歷史：{PUBLIC_HISTORY_JSON} / {manifest}")
     if pd.notna(headline["alert_urgency_p10_days"]):
         print(
             "歷史警報急迫度 P10：較早的 20% 回撤約在確認後 "

@@ -216,6 +216,7 @@ jobs:
           git add paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json || true
           git add paper_trading_v85_300k.html paper_trading_surge_pro_300k.html || true
           git add capital_rotation_alert.html capital_rotation_alert_latest.json || true
+          git add capital_rotation_history_10y.json capital_rotation_*_10y.csv capital_rotation_summary_10y.json || true
           git add report_v85.html chart_v85.png report_guard.html chart_guard.png index.html || true
           git add report_surge.html chart_surge.png report_surge_pro.html chart_surge_pro.png || true
           git add -u artifacts || true
