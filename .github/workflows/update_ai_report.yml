@@ -2,11 +2,16 @@ name: AI Quant Filter Lab Daily Update
 
 on:
   schedule:
-    # 每週一到五 UTC 11:00（台灣時間 19:00，收盤後 5.5 小時）；下方 XTAI 行事曆
-    # 會再排除台股休市日。GitHub 排程本身不保證準時（高負載時會延遲甚至跳過），
-    # 故另建議由外部 cron 以 workflow_dispatch 觸發，兩者並存互為備援。
-    - cron: '0 11 * * 1-5'
-    # 每月 1 日 UTC 10:00 跑月報
+    # ★每日排程已移除，改由外部 cron（cron-job.org）於台灣時間 19:00 以
+    #   workflow_dispatch API 觸發。理由：GitHub 內建 schedule 官方明載為 best-effort，
+    #   高負載時會延遲數十分鐘甚至整天不觸發，對「每日交易訊號」不可接受。
+    #   刻意不保留 GitHub 每日排程當備援——兩者同時觸發會造成每天重複執行與重複 commit。
+    #
+    #   ⚠️ 外部觸發務必送 inputs.force=false，才會套用與排程相同的完整防護
+    #      （XTAI 交易日 fail-closed + preflight --scheduled 嚴格資料契約）。
+    #      送 force=true 會略過這兩道，僅限人工補跑。
+    #
+    # 月報低頻、可容忍延遲，續用 GitHub schedule（每月 1 日 UTC 10:00）
     - cron: '0 10 1 * *'
   workflow_dispatch:
     inputs:
