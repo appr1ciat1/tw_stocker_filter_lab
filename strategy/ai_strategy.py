@@ -11,6 +11,8 @@ Production scoring: rank_momentum × 3 + rank_trend × 1
 
 STRATEGY_VERSION = "v8.5"
 
+import os
+import time
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -40,6 +42,16 @@ def fetch_panel_data(tickers, days=800, start_date=None, end_date=None):
     close_df, open_df, high_df, low_df, vol_df : tuple[pd.DataFrame]
         各為 (日期 x 股票代號) 的 DataFrame，已做 forward fill
     """
+    # 共享快照：preflight 每日只抓一次、驗證後凍結成 snapshot；四策略設定
+    # TWSTK_SNAPSHOT 後一律改讀同一份，消除「四次各自重抓、輸入不一致」。
+    # 未設環境變數時走原本的即時下載路徑（行為不變）。
+    snapshot = os.environ.get("TWSTK_SNAPSHOT")
+    if snapshot and os.path.exists(snapshot):
+        from twstk.data.contract import load_snapshot
+        print(f"🧊 使用共享快照 {snapshot}（不重抓 yfinance）")
+        return load_snapshot(snapshot, tickers=list(tickers),
+                             start=start_date, end=end_date)
+
     if end_date is not None:
         end_dt = pd.Timestamp(end_date)
     else:
@@ -85,7 +97,20 @@ def fetch_panel_data(tickers, days=800, start_date=None, end_date=None):
             batch_num = batch_start // batch_size + 1
             total_batches = (len(symbols) + batch_size - 1) // batch_size
             print(f"   📦 下載批次 {batch_num}/{total_batches} ({len(batch)} 檔)...")
-            batch_df = yf.download(batch, start=start_dt, end=end_dt, progress=False)
+            # 顯式 auto_adjust=True：鎖定「還原價」基準，不依賴 yfinance 版本預設
+            # （該預設歷史上曾變動，會靜默改變全策略價格基準）。
+            # 偶發限流/空回應時重試最多 3 次，避免單次網路抖動造成缺股。
+            batch_df = pd.DataFrame()
+            for attempt in range(1, 4):
+                try:
+                    batch_df = yf.download(batch, start=start_dt, end=end_dt,
+                                           progress=False, auto_adjust=True)
+                    if not batch_df.empty:
+                        break
+                except Exception as e:
+                    print(f"      ⚠️ 批次下載第 {attempt}/3 次失敗：{e}")
+                if attempt < 3:
+                    time.sleep(attempt * 2)
             if not batch_df.empty:
                 downloaded.append(batch_df)
         return downloaded

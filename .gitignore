@@ -187,6 +187,9 @@ artifacts/sbl_7yr_cache.pkl
 artifacts/sbl_balances_cache.pkl
 artifacts/margin_cache.pkl
 
+# Preflight 每日共享快照：只存在於 CI runner，絕不 commit 進 main（避免 repo 膨脹拖垮 Pages 部署）
+artifacts/snapshot_*/
+
 # Filter Lab publishes these generated snapshots on every trading day.
 !stock_report.html
 !paper_trading.html

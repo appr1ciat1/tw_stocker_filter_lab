@@ -77,6 +77,8 @@ jobs:
 
       # 用 XTAI（台股）行事曆判定「今天台灣時間是否為交易日」。
       # 排程在非交易日（含週末、國定假日）會自動跳過；手動 workflow_dispatch 一律執行。
+      # ★fail-closed：行事曆判定失敗時「不發布」（is_trading=false），
+      #   而非硬跑——寧可漏一天，也不要用過期/非交易日資料冒充今日訊號污染 paper 追蹤。
       - name: Check Taiwan trading day
         id: twcheck
         run: |
@@ -90,12 +92,28 @@ jobs:
                   is_trading = bool(xcals.get_calendar("XTAI").is_session(pd.Timestamp(tw)))
                   print("台灣日期", tw, "交易日?", is_trading)
               except Exception as e:
-                  print("行事曆判定失敗，預設執行:", e); is_trading = True
+                  print("⚠️ 行事曆判定失敗 → fail-closed，今日不發布:", e); is_trading = False
           else:
               print("手動觸發 → 一律執行")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"is_trading={'true' if is_trading else 'false'}\n")
           PY
+
+      # ── Preflight：資料契約 + 四策略共享快照（fail-closed）──
+      # 只抓一次完整面板（EXTENDED_TICKERS + 0050），驗證：最後一根 bar 是否==今日 session、
+      # 完整度、關鍵標的(0050)、單日跳變。通過才凍結 snapshot 並把 TWSTK_SNAPSHOT 寫入 $GITHUB_ENV，
+      # 讓下方四策略共讀同一份（輸入一致 + 當日 run 可重現）。
+      # 契約不過 → 本步以非零 exit 失敗 → 後續所有步驟（含 commit/push）被 implicit success() 跳過，
+      # 不產生也不發布新報表，保留前一份。dispatch（人工補跑）放寬「最後 bar 必須==今日」限制。
+      - name: Preflight data contract + shared snapshot
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: |
+          MODE=--scheduled
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then MODE=--dispatch; fi
+          python preflight.py \
+            --start-date 2019-01-01 \
+            --days ${{ github.event.inputs.days || '1200' }} \
+            $MODE
 
       # ── 四個策略各自產報表；每份用 sed 把標題改成各自策略名（避免全顯示 v8.5 混淆）──
       # 執行順序：v8.5 → GUARD → SURGE → SURGE PRO（最後）。最後一個 ai_report 寫的
