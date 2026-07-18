@@ -1,0 +1,5 @@
+exchange_calendars==4.13.2
+matplotlib==3.11.1
+numpy==2.5.1
+pandas==3.0.3
+yfinance==1.5.1
