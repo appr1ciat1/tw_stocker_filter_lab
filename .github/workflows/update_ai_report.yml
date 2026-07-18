@@ -63,6 +63,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # 版本鎖定用：記錄本次 CI「實際解析到」的套件版本。
+      # 綠燈後把 requirements.lock.txt 的精確版本人工升格進 requirements.txt，
+      # 即可從「大版本上限」進到「完全可重現」。刻意不自動改 requirements.txt——
+      # 鎖版本是決策，需要人確認。
+      - name: Record resolved dependency versions
+        run: |
+          pip freeze | grep -iE "^(yfinance|pandas|numpy|matplotlib|exchange[-_]calendars)==" \
+            | sort > requirements.lock.txt
+          echo "本次 CI 解析到的版本："
+          cat requirements.lock.txt
+
       - name: Restore incremental market-data caches
         uses: actions/cache@v4
         with:
@@ -229,6 +240,7 @@ jobs:
           git config --global user.email "voidful.stack@gmail.com"
           git config --global user.name "Voidful"
 
+          git add requirements.lock.txt || true
           git add stock_report.html backtest_chart.png paper_trading.html paper_trading_guard.html paper_equity.json || true
           git add paper_trading_v85_confirmed.html paper_trading_v85_confirmed.json || true
           git add paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json || true

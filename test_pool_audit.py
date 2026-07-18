@@ -12,11 +12,13 @@ def check(name, cond):
     (PASS if cond else FAIL).append(name)
     print(f"  {'✅' if cond else '❌'} {name}")
 
-# 1) 分組解析：應得 116 檔、7 組
+# 1) 分組解析：應得 115 檔、7 組（2888 已下市併入 2887，已自池中剔除）
 sec = A.parse_pool_with_sectors("ai_report.py")
 flat = [c for l in sec.values() for c in l]
-check("解析 116 檔", len(flat) == 116)
+check("解析 115 檔", len(flat) == 115)
 check("含 7 個產業組", len([k for k in sec if sec[k]]) == 7)
+check("已下市 2888 不在池內", "2888" not in flat)
+check("存續公司 2887 仍在池內", "2887" in flat)
 
 # 2) 中位數排除單日爆量（處置股情境）
 idx = pd.bdate_range(end="2026-07-15", periods=20)
