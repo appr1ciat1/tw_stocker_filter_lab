@@ -115,8 +115,10 @@ class AcceptanceReport:
         return all(o.passed for o in self.outcomes)
 
     def summary(self) -> str:
-        head = "✅ 候選池通過三門驗收 → 可進入下一階段" if self.passed \
-            else "❌ 候選池未通過（任一門失敗即擋，不得取代現行池）"
+        # 先研究後投資：三門通過僅代表『通過研究驗收』，下一步是影子/紙上追蹤，
+        # 尚『不可』直接投入資金部署（見 DYNAMIC_POOL_RESEARCH.md 的階段閘門）。
+        head = "✅ 候選池通過三門研究驗收 → 進入影子/紙上追蹤期（尚不可直接部署）" if self.passed \
+            else "❌ 候選池未通過研究驗收（任一門失敗即擋，不得取代現行池）"
         return "\n".join([head] + ["  " + o.line() for o in self.outcomes])
 
 
