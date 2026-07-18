@@ -45,5 +45,73 @@
   "2379",
   "3481",
   "6446"
- ]
+ ],
+ "today": {
+  "date": "2026-07-17",
+  "picks": [
+   {
+    "ticker": "6505",
+    "rank": 1,
+    "freq": 1,
+    "freq_tier": "少",
+    "persistent": false,
+    "verdict": "⭘ 訊號衝突：#1 但出現次數偏少",
+    "tone": "warn"
+   },
+   {
+    "ticker": "1303",
+    "rank": 2,
+    "freq": 21,
+    "freq_tier": "多",
+    "persistent": true,
+    "verdict": "⚠️ 避開：持續掛榜",
+    "tone": "bad"
+   },
+   {
+    "ticker": "6446",
+    "rank": 3,
+    "freq": 20,
+    "freq_tier": "多",
+    "persistent": true,
+    "verdict": "⚠️ 避開：持續掛榜",
+    "tone": "bad"
+   },
+   {
+    "ticker": "2634",
+    "rank": 4,
+    "freq": 4,
+    "freq_tier": "少",
+    "persistent": false,
+    "verdict": "⚠️ 留意：出現次數偏少",
+    "tone": "warn"
+   },
+   {
+    "ticker": "1326",
+    "rank": 5,
+    "freq": 10,
+    "freq_tier": "多",
+    "persistent": false,
+    "verdict": "一般",
+    "tone": "neutral"
+   },
+   {
+    "ticker": "1301",
+    "rank": 6,
+    "freq": 5,
+    "freq_tier": "中",
+    "persistent": false,
+    "verdict": "一般",
+    "tone": "neutral"
+   },
+   {
+    "ticker": "2887",
+    "rank": 7,
+    "freq": 9,
+    "freq_tier": "多",
+    "persistent": false,
+    "verdict": "一般",
+    "tone": "neutral"
+   }
+  ]
+ }
 }

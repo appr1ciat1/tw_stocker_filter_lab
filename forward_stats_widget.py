@@ -81,6 +81,31 @@ def render(stats: dict | None = None, path: str = STATS_FILE,
     else:
         warn = ("<div class='fw-note'>目前無標的處於「持續掛榜未兌現」狀態。</div>")
 
+    # ── 今日訊號分級：把所有挑選方式套用到當日實際訊號，一檔一判定 ──
+    today_tbl = ""
+    td = stats.get("today") or {}
+    if td.get("picks"):
+        TONE = {"best": "#34d399", "bad": "#f87171", "warn": "#fbbf24", "neutral": "#94a3b8"}
+        trows = ""
+        for p in td["picks"]:
+            c = TONE.get(p.get("tone"), "#94a3b8")
+            trows += (
+                f"<tr><td>{lf(p['ticker'])}</td>"
+                f"<td>#{p.get('rank','-')}</td>"
+                f"<td>{p.get('freq','-')} 次（{p.get('freq_tier','-')}）</td>"
+                f"<td>{'⚠️ 是' if p.get('persistent') else '否'}</td>"
+                f"<td style='text-align:left;color:{c};font-weight:600'>{p.get('verdict','')}</td></tr>"
+            )
+        today_tbl = (
+            f"<h4 style='margin:14px 0 4px;color:#fcd34d;font-size:.95rem'>"
+            f"今日訊號分級（{td.get('date','')}）</h4>"
+            "<table class='fw-tbl'><thead><tr><th>股票</th><th>排名</th><th>出現次數</th>"
+            "<th>持續掛榜</th><th style='text-align:left'>綜合判定</th></tr></thead>"
+            f"<tbody>{trows}</tbody></table>"
+            "<div class='fw-note'>判定同時套用所有挑選方式；"
+            "<b>規則互相矛盾時明示衝突</b>（例：排名 #1 但出現次數偏少），不擇優呈現。</div>"
+        )
+
     rows = ""
     for b in stats["blocks"]:
         base = "全部訊號" in b["name"]
@@ -103,7 +128,7 @@ def render(stats: dict | None = None, path: str = STATS_FILE,
         f"樣本數少的分組請謹慎解讀；此非長期預期。"
         f"</div>"
     )
-    return f"{_CSS}<div class='fw-wrap'>{warn}{tbl}{note}</div>"
+    return f"{_CSS}<div class='fw-wrap'>{warn}{today_tbl}{tbl}{note}</div>"
 
 
 def persistent_from_rounds(rounds, min_hits: int = 2) -> list:

@@ -369,6 +369,38 @@ def main():
         ] if b],
         persist_today=sorted(qmap[max(qmap)]) if qmap else [],
     )
+
+    # ── 今日訊號分級：把所有挑選方式套用到當日實際訊號，每檔給一個判定 ──
+    #   刻意做成「一檔一判定」而非多條並列清單——並列會誘導事後挑對自己有利的那條看。
+    last_day = sig["signal_date"].max()
+    today_sig = sig[sig["signal_date"] == last_day].sort_values("rank")
+    # ticker 從 CSV 讀進來可能是 int64，查表前一律正規化為 str
+    freq_all = sig.assign(_t=sig["ticker"].astype(str)).groupby("_t").size()
+    lo_cut = freq_all.quantile(1 / 3)
+    med_cut = freq_all.median()
+    pset = qmap.get(max(qmap), set()) if qmap else set()
+    picks = []
+    for _, r in today_sig.iterrows():
+        t = str(r["ticker"])
+        f = int(freq_all.get(t, 0))
+        is_p = t in pset
+        rank = int(r["rank"]) if pd.notna(r["rank"]) else None
+        # 多條規則可能互相矛盾（例：#1 但只出現過 1 次）。一律明示衝突，
+        # 不可只挑對該檔有利的那條呈現。
+        if is_p:
+            verdict, tone = "⚠️ 避開：持續掛榜", "bad"
+        elif rank == 1 and f >= med_cut:
+            verdict, tone = "★ 最佳：#1、未持續掛榜、出現次數足", "best"
+        elif rank == 1:
+            verdict, tone = "⭘ 訊號衝突：#1 但出現次數偏少", "warn"
+        elif f <= lo_cut:
+            verdict, tone = "⚠️ 留意：出現次數偏少", "warn"
+        else:
+            verdict, tone = "一般", "neutral"
+        picks.append(dict(ticker=t, rank=rank, freq=f,
+                          freq_tier=("少" if f <= lo_cut else ("多" if f >= med_cut else "中")),
+                          persistent=is_p, verdict=verdict, tone=tone))
+    stats["today"] = dict(date=str(pd.Timestamp(last_day).date()), picks=picks)
     with open("forward_stats.json", "w", encoding="utf-8") as f:
         json.dump(stats, f, ensure_ascii=False, indent=1)
     print(f"📁 forward_stats.json（供 paper 頁引用，as_of={stats['as_of']}）")
