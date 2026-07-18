@@ -200,19 +200,27 @@ jobs:
           # 主報表 stock_report.html 的標題也改成 SURGE PRO（它就是最強策略）
           sed -i 's#AI 台股量化交易 v8\.5#AI 台股量化交易 · SURGE PRO 追最高報酬#g' stock_report.html
 
-      # Paper 頁：四策略全期權益曲線比較 + 當日 SURGE PRO 訊號（乾淨版，無 v9 內容）
-      - name: Paper page (四策略比較)
-        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
-        run: python build_paper_page.py
-
       # ── 累積式「真實前瞻紀錄」──
       # paper 頁是每次重跑的『模擬』；這裡把當日報表真正發出的建議逐日追加進
       # forward_log.csv，累積成事後無法竄改的前瞻樣本，用來驗證回測是否可信。
       # 不需 git 歷史（配合 fetch-depth: 1）。與前一日完全相同的訊號（休市重發，
       # 如 2026-07-10 颱風日）會被擋下，作為資料契約之外的第二道保險。
+      # ★必須排在 paper 頁之前：paper 頁要讀本步產生的 forward_stats.json。
       - name: Append forward signal log
         if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
         run: python forward_record.py --append --report report_v85.html --log forward_log.csv
+
+      # 依累積日誌重算前瞻績效 → forward_stats.json（供 paper 頁的績效對照表引用，
+      # 數字不寫死在頁面，避免顯示過時統計）。失敗不阻擋當日報表發布。
+      - name: Update forward stats
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        continue-on-error: true
+        run: python forward_record.py --log forward_log.csv
+
+      # Paper 頁：四策略全期權益曲線比較 + 當日 SURGE PRO 訊號（乾淨版，無 v9 內容）
+      - name: Paper page (四策略比較)
+        if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
+        run: python build_paper_page.py
 
       - name: Confirmed filter pages (v8.5 / SURGE PRO)
         if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
@@ -249,7 +257,7 @@ jobs:
           git config --global user.email "voidful.stack@gmail.com"
           git config --global user.name "Voidful"
 
-          git add requirements.lock.txt forward_log.csv || true
+          git add requirements.lock.txt forward_log.csv forward_stats.json || true
           git add stock_report.html backtest_chart.png paper_trading.html paper_trading_guard.html paper_equity.json || true
           git add paper_trading_v85_confirmed.html paper_trading_v85_confirmed.json || true
           git add paper_trading_surge_pro_confirmed.html paper_trading_surge_pro_confirmed.json || true

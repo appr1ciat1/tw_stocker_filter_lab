@@ -370,6 +370,21 @@ def today_signals(orders_glob="artifacts/orders_2*.json"):
     return latest, sigs
 
 
+def _forward_stats_block(buy_rounds):
+    """『持續掛榜警示 + 挑選方式績效對照』區塊。
+
+    警示名單取自本頁三輪清單的**交集**（每輪皆 ≥2 次）——這一群在真實前瞻紀錄中
+    停損出場 72%、停利僅 12%、平均 -12.8%（基準 +5.6%），故以排除清單呈現。
+    績效數字讀 forward_stats.json（不寫死），缺檔時整區靜默略過。
+    """
+    try:
+        import forward_stats_widget as fsw
+        persist = fsw.persistent_from_rounds(buy_rounds)
+        return fsw.render(persist_today=persist, link_fn=_stock_link)
+    except Exception:
+        return ""
+
+
 def build_html(results, sig_file, signals, sells, tm_stats, tm_trades, buy_rounds=None, ninety=None, track=None):
     today = date.today().strftime("%Y-%m-%d")
     track = track or TRACKS[0]
@@ -487,6 +502,7 @@ def build_html(results, sig_file, signals, sells, tm_stats, tm_trades, buy_round
             "故當日新入選的股票在此僅 1 天、可能不在 ≥2 名單——兩者衡量不同，非矛盾。</td></tr>"
             "</tbody></table>"
             f"{round_blocks}"
+            f"{_forward_stats_block(buy_rounds)}"
         )
     else:
         rounds_html = "<p style='color:#94a3b8'>資料不足，無法計算歷史買進訊號。</p>"
