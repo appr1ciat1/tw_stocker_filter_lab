@@ -1,5 +1,13 @@
-yfinance
-pandas
-numpy
-matplotlib
-exchange_calendars
+# ── 版本鎖定策略 ─────────────────────────────────────────────
+# 原本全部裸列（無版本），CI 每天 pip install 都抓最新版 = 每天賭一次相容性。
+# 已知風險：pandas 2→3 移除了 groupby(axis=)、yfinance 曾靜默改 auto_adjust 預設。
+# 下方鎖「大版本上限」擋掉「某天醒來被破壞性改版打爆」的失敗模式，
+# 同時不強迫降版（現行 code 已驗證與 pandas 3 / numpy 2 相容）。
+#
+# ★ 若要完整可重現：請在「最近一次 CI 綠燈」後，用 pip freeze 把下列改成精確 == 版本。
+#   目前上限為保守防護，非精確鎖定。
+yfinance>=0.2,<2          # 程式已顯式 auto_adjust=True，不再依賴版本預設
+pandas>=2.0,<4
+numpy>=1.24,<3
+matplotlib>=3.6
+exchange_calendars>=4.2   # 交易日判定；缺席時 preflight 走 fail-closed
