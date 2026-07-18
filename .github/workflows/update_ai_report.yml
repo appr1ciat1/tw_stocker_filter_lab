@@ -2,13 +2,20 @@ name: AI Quant Filter Lab Daily Update
 
 on:
   schedule:
-    # 每週一到五 UTC 14:00（台灣時間 22:00）；下方 XTAI 行事曆
-    # 會再排除台股休市日，workflow_dispatch 則保留人工補跑能力。
-    - cron: '0 14 * * 1-5'
+    # 每週一到五 UTC 11:00（台灣時間 19:00，收盤後 5.5 小時）；下方 XTAI 行事曆
+    # 會再排除台股休市日。GitHub 排程本身不保證準時（高負載時會延遲甚至跳過），
+    # 故另建議由外部 cron 以 workflow_dispatch 觸發，兩者並存互為備援。
+    - cron: '0 11 * * 1-5'
     # 每月 1 日 UTC 10:00 跑月報
     - cron: '0 10 1 * *'
   workflow_dispatch:
     inputs:
+      force:
+        description: '人工補跑：略過交易日檢查並放寬資料新鮮度（外部 cron 請用 false）'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
       tp_atr:
         description: 'ATR 停利倍數'
         required: false
@@ -90,13 +97,20 @@ jobs:
       # 排程在非交易日（含週末、國定假日）會自動跳過；手動 workflow_dispatch 一律執行。
       # ★fail-closed：行事曆判定失敗時「不發布」（is_trading=false），
       #   而非硬跑——寧可漏一天，也不要用過期/非交易日資料冒充今日訊號污染 paper 追蹤。
+      # ★只有 force=true（人工補跑）才略過行事曆。外部 cron 以 workflow_dispatch
+      #   觸發時 force=false，仍會走完整的交易日檢查——否則國定假日/颱風日會照跑。
       - name: Check Taiwan trading day
         id: twcheck
+        env:
+          FORCE: ${{ github.event.inputs.force || 'false' }}
         run: |
           python - <<'PY'
           import os, datetime
+          force = os.environ.get("FORCE", "false").lower() == "true"
           is_trading = True
-          if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+          if force:
+              print("⚠️ force=true（人工補跑）→ 略過交易日檢查")
+          else:
               try:
                   import exchange_calendars as xcals, pandas as pd
                   tw = (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).date()
@@ -104,8 +118,6 @@ jobs:
                   print("台灣日期", tw, "交易日?", is_trading)
               except Exception as e:
                   print("⚠️ 行事曆判定失敗 → fail-closed，今日不發布:", e); is_trading = False
-          else:
-              print("手動觸發 → 一律執行")
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"is_trading={'true' if is_trading else 'false'}\n")
           PY
@@ -119,8 +131,10 @@ jobs:
       - name: Preflight data contract + shared snapshot
         if: github.event.schedule != '0 10 1 * *' && steps.twcheck.outputs.is_trading == 'true'
         run: |
+          # ★只有 force=true 才放寬「最後 bar 必須==今日 session」。外部 cron 觸發
+          #   (force=false) 一律走嚴格模式，否則資料過期會被當成今日訊號發出去。
           MODE=--scheduled
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then MODE=--dispatch; fi
+          if [ "${{ github.event.inputs.force || 'false' }}" = "true" ]; then MODE=--dispatch; fi
           python preflight.py \
             --start-date 2019-01-01 \
             --days ${{ github.event.inputs.days || '1200' }} \
