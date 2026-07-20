@@ -1,6 +1,6 @@
 {
- "as_of": "2026-07-17",
- "window": "2026-04-06 ~ 2026-07-17",
+ "as_of": "2026-07-20",
+ "window": "2026-04-06 ~ 2026-07-20",
  "persist_rule": "3輪×8日×每輪≥2次",
  "blocks": [
   {
@@ -43,16 +43,17 @@
  "persist_today": [
   "1303",
   "2379",
+  "2887",
   "3481",
   "6446"
  ],
  "today": {
-  "date": "2026-07-17",
+  "date": "2026-07-20",
   "picks": [
    {
     "ticker": "6505",
     "rank": 1,
-    "freq": 1,
+    "freq": 2,
     "freq_tier": "少",
     "persistent": false,
     "verdict": "⭘ 訊號衝突：#1 但出現次數偏少",
@@ -61,16 +62,7 @@
    {
     "ticker": "1303",
     "rank": 2,
-    "freq": 21,
-    "freq_tier": "多",
-    "persistent": true,
-    "verdict": "⚠️ 避開：持續掛榜",
-    "tone": "bad"
-   },
-   {
-    "ticker": "6446",
-    "rank": 3,
-    "freq": 20,
+    "freq": 22,
     "freq_tier": "多",
     "persistent": true,
     "verdict": "⚠️ 避開：持續掛榜",
@@ -78,27 +70,36 @@
    },
    {
     "ticker": "2634",
-    "rank": 4,
-    "freq": 4,
+    "rank": 3,
+    "freq": 5,
     "freq_tier": "少",
     "persistent": false,
     "verdict": "⚠️ 留意：出現次數偏少",
     "tone": "warn"
    },
    {
-    "ticker": "1326",
-    "rank": 5,
-    "freq": 10,
+    "ticker": "6446",
+    "rank": 4,
+    "freq": 21,
     "freq_tier": "多",
+    "persistent": true,
+    "verdict": "⚠️ 避開：持續掛榜",
+    "tone": "bad"
+   },
+   {
+    "ticker": "1301",
+    "rank": 5,
+    "freq": 6,
+    "freq_tier": "中",
     "persistent": false,
     "verdict": "一般",
     "tone": "neutral"
    },
    {
-    "ticker": "1301",
+    "ticker": "1326",
     "rank": 6,
-    "freq": 5,
-    "freq_tier": "中",
+    "freq": 11,
+    "freq_tier": "多",
     "persistent": false,
     "verdict": "一般",
     "tone": "neutral"
@@ -106,11 +107,11 @@
    {
     "ticker": "2887",
     "rank": 7,
-    "freq": 9,
+    "freq": 10,
     "freq_tier": "多",
-    "persistent": false,
-    "verdict": "一般",
-    "tone": "neutral"
+    "persistent": true,
+    "verdict": "⚠️ 避開：持續掛榜",
+    "tone": "bad"
    }
   ]
  }
