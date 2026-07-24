@@ -1,0 +1,19 @@
+{
+  "as_of_close": "2026-07-24",
+  "confirmation_days": 3,
+  "warning_only": true,
+  "automatic_trade_action": false,
+  "active_alert_count": 0,
+  "active_alerts": [],
+  "recent_new_alerts_20_sessions": [],
+  "historical_backtest": {
+    "file": "capital_rotation_history_10y.json",
+    "period": {
+      "start": "2016-07-01",
+      "end": "2026-07-07"
+    },
+    "event_count": 192,
+    "stock_test_count": 5596,
+    "complete_event_history_published": true
+  }
+}

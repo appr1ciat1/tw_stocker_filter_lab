@@ -1,0 +1,113 @@
+{
+  "version": "mom_surge_pro_confirmed",
+  "as_of_close": "2026-07-24",
+  "initial_capital": 1000000,
+  "cash": 1682152.1658383394,
+  "equity": 2911269.866571005,
+  "metrics": {
+    "ann_return": 1.3384258329103376,
+    "sharpe": 2.382251152241432,
+    "max_drawdown_pct": -0.21002917803582433,
+    "total_trades": 134
+  },
+  "overnight_completed_us_session": [
+    {
+      "market": "S&P 500",
+      "us_session_date": "2026-07-23",
+      "open_return": -0.010757481343441455,
+      "mid_return": -0.0007050115917833777,
+      "close_return": -0.012089697334330851,
+      "intraday_return": -0.0013467031246277017
+    },
+    {
+      "market": "費城半導體",
+      "us_session_date": "2026-07-23",
+      "open_return": -0.014090304414532406,
+      "mid_return": 0.008063636267136465,
+      "close_return": -0.005384888853357195,
+      "intraday_return": 0.008829830561718488
+    },
+    {
+      "market": "台積電 ADR",
+      "us_session_date": "2026-07-23",
+      "open_return": -0.012748973733117674,
+      "mid_return": 0.0011542798474561966,
+      "close_return": -0.013366266225935286,
+      "intraday_return": -0.0006252639667054805
+    }
+  ],
+  "positions": [
+    {
+      "ticker": "6446",
+      "sector": "資訊/通訊",
+      "shares": 347.32862648769935,
+      "entry_price": 1242.7085481124193,
+      "price": 1135.0,
+      "market_value": 394217.99106353876,
+      "weight": 0.13541100932970615,
+      "unrealized_return": -0.08667241267151538,
+      "global_leader": "REGN",
+      "global_leader_return": 0.0011210118200197794,
+      "entry_gate_as_of": false,
+      "entry_scale_as_of": 0.0,
+      "support_days": 1.0,
+      "required_days": 3.0,
+      "chip_score": -0.23666666666666664,
+      "reward_risk": 4.4401694521716895
+    },
+    {
+      "ticker": "2379",
+      "sector": "半導體",
+      "shares": 421.4287406521786,
+      "entry_price": 821.0,
+      "price": 744.0,
+      "market_value": 313542.9830452209,
+      "weight": 0.10769973153142369,
+      "unrealized_return": -0.09378806333739342,
+      "global_leader": "MCHP",
+      "global_leader_return": -0.043166293976143244,
+      "entry_gate_as_of": false,
+      "entry_scale_as_of": 0.0,
+      "support_days": 33.0,
+      "required_days": 3.0,
+      "chip_score": -0.1983333333333333,
+      "reward_risk": 2.8306188925081432
+    },
+    {
+      "ticker": "3481",
+      "sector": "電子零組件",
+      "shares": 5290.140820220133,
+      "entry_price": 66.0999984741211,
+      "price": 49.5,
+      "market_value": 261861.97060089657,
+      "weight": 0.08994768008550397,
+      "unrealized_return": -0.25113462719095503,
+      "global_leader": "GLW",
+      "global_leader_return": 0.01298195528816204,
+      "entry_gate_as_of": false,
+      "entry_scale_as_of": 0.0,
+      "support_days": 6.0,
+      "required_days": 3.0,
+      "chip_score": -0.3066666666666667,
+      "reward_risk": 5.221553787616902
+    },
+    {
+      "ticker": "6116",
+      "sector": "資訊/通訊",
+      "shares": 18803.96756785777,
+      "entry_price": 18.399999618530273,
+      "price": 13.800000190734863,
+      "market_value": 259494.7560230094,
+      "weight": 0.08913455911548707,
+      "unrealized_return": -0.24999997408493657,
+      "global_leader": "QQQ",
+      "global_leader_return": -0.01898341826999872,
+      "entry_gate_as_of": false,
+      "entry_scale_as_of": 0.0,
+      "support_days": 5.0,
+      "required_days": 3.0,
+      "chip_score": 0.0,
+      "reward_risk": 8.0
+    }
+  ]
+}
