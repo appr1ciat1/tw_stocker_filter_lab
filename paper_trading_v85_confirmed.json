@@ -1,77 +1,77 @@
 {
   "version": "momentum_v85_confirmed",
-  "as_of_close": "2026-07-23",
+  "as_of_close": "2026-07-24",
   "initial_capital": 1000000,
-  "cash": 2444033.9016974047,
-  "equity": 3100888.277183615,
+  "cash": 2444033.879603032,
+  "equity": 3082144.697066607,
   "metrics": {
-    "ann_return": 1.4657249329850606,
-    "sharpe": 3.2964124689916225,
-    "max_drawdown_pct": -0.16379337424515805,
+    "ann_return": 1.4468932445424771,
+    "sharpe": 3.2729060922995243,
+    "max_drawdown_pct": -0.16379337424515827,
     "total_trades": 181
   },
   "overnight_completed_us_session": [
     {
       "market": "S&P 500",
-      "us_session_date": "2026-07-22",
-      "open_return": -0.001562081202212795,
-      "mid_return": 0.0011236863163284205,
-      "close_return": -0.0013636917526039793,
-      "intraday_return": 0.0001986998348857405
+      "us_session_date": "2026-07-23",
+      "open_return": -0.010757481343441455,
+      "mid_return": -0.0007050115917833777,
+      "close_return": -0.012089697334330851,
+      "intraday_return": -0.0013467031246277017
     },
     {
       "market": "費城半導體",
-      "us_session_date": "2026-07-22",
-      "open_return": -0.018844029278159313,
-      "mid_return": 0.016209236459947762,
-      "close_return": 0.004411545733925104,
-      "intraday_return": 0.023702220346246472
+      "us_session_date": "2026-07-23",
+      "open_return": -0.014090304414532406,
+      "mid_return": 0.008063636267136465,
+      "close_return": -0.005384888853357195,
+      "intraday_return": 0.008829830561718488
     },
     {
       "market": "台積電 ADR",
-      "us_session_date": "2026-07-22",
-      "open_return": -0.022844450258092452,
-      "mid_return": 0.011086719539480372,
-      "close_return": -0.008007333821104745,
-      "intraday_return": 0.015183986255726145
+      "us_session_date": "2026-07-23",
+      "open_return": -0.012748973733117674,
+      "mid_return": 0.0011542798474561966,
+      "close_return": -0.013366266225935286,
+      "intraday_return": -0.0006252639667054805
     }
   ],
   "positions": [
     {
       "ticker": "1326",
       "sector": "傳產/其他",
-      "shares": 5098.244971397082,
+      "shares": 5098.244925308307,
       "entry_price": 66.80000305175781,
-      "price": 71.69999694824219,
-      "market_value": 365544.14889056183,
-      "weight": 0.11788368887077985,
-      "unrealized_return": 0.0733531986920386,
+      "price": 67.5,
+      "market_value": 344131.5324583107,
+      "weight": 0.11165326948661224,
+      "unrealized_return": 0.010478995752437603,
       "global_leader": "DOW",
-      "global_leader_return": 0.025598972898684957,
+      "global_leader_return": -0.011200012207031262,
       "entry_gate_as_of": false,
       "entry_scale_as_of": 0.0,
-      "support_days": 17.0,
+      "support_days": 18.0,
       "required_days": 3.0,
-      "chip_score": -0.12333333333333335,
-      "reward_risk": 0.5246166369709879
+      "chip_score": -0.25333333333333335,
+      "reward_risk": 0.4973263016994323
     },
     {
       "ticker": "2890",
       "sector": "金融",
-      "shares": 7625.922009883029,
+      "shares": 7625.921940943738,
       "entry_price": 37.31638600662352,
-      "price": 38.20000076293945,
-      "market_value": 291310.2265956485,
-      "weight": 0.09394412199211231,
-      "unrealized_return": 0.023679001395234156,
+      "price": 38.54999923706055,
+      "market_value": 293979.2850052644,
+      "weight": 0.09538140285401121,
+      "unrealized_return": 0.03305821818377774,
       "global_leader": "JPM",
-      "global_leader_return": 0.008631869692429461,
+      "global_leader_return": 0.004853400197806446,
       "entry_gate_as_of": false,
       "entry_scale_as_of": 0.0,
-      "support_days": 23.0,
+      "support_days": 24.0,
       "required_days": 3.0,
-      "chip_score": -0.008333333333333304,
-      "reward_risk": 1.6025897552157196
+      "chip_score": -0.0833333333333333,
+      "reward_risk": 2.128105395059151
     }
   ]
 }
